@@ -11,6 +11,17 @@ CUSTOM_HEADER = {
     'Origin': 'https://spotifydown.com',
 }
 
+def check_track_playlist(link):
+    # if "/track/" in link:
+    if re.search(r"^w{3}\.spotify\.com\/track\/", link):
+        return "track"
+    # elif "/playlist/" in link:
+    elif re.search(r"^w{3}\.spotify\.com\/playlist\/", link):
+        return "playlist"
+    else:
+        return None
+        # print(f"{link} is not a valid Spotify track or playlist link")
+
 def main():
     # Initialize parser
     parser = argparse.ArgumentParser(description="Program to download tracks from Spotify via CLI")
@@ -21,40 +32,49 @@ def main():
 
     args = parser.parse_args()
 
-    print(args.link)
+    # print(args.link)
 
     for link in args.link:
-        track_id = link.split("/")[-1].split("?")[0]
-        response = requests.get(f"https://api.spotifydown.com/download/{track_id}", headers=CUSTOM_HEADER)
-        # print(response.json())
-        response = response.json()
-        print(response['success'])
-        print(f"Song: {response['metadata']['title']}, Artist: {response['metadata']['artists']}, Album: {response['metadata']['album']}")
-        print(response['link'])
+        link_type = check_track_playlist(link)
+        if link_type == "track":
+            print("Track link identified")
+            track_id = link.split("/")[-1].split("?")[0]
+            response = requests.get(f"https://api.spotifydown.com/download/{track_id}", headers=CUSTOM_HEADER)
+            # print(response.json())
+            response = response.json()
+            print(response['success'])
+            print(f"Song: {response['metadata']['title']}, Artist: {response['metadata']['artists']}, Album: {response['metadata']['album']}")
+            print(response['link'])
 
-        trackname = response['metadata']['title']
-        filename = re.sub(r"[<>:\"/\\|?*]", "_", f"{trackname}.mp3")
+            trackname = response['metadata']['title']
+            filename = re.sub(r"[<>:\"/\\|?*]", "_", f"{trackname}.mp3")
 
-        audio_response = requests.get(response['link'])
+            audio_response = requests.get(response['link'])
 
-        if audio_response.status_code == 200:
-            with open(os.path.join(args.outpath, filename), "wb") as file:
-                file.write(audio_response.content)
+            if audio_response.status_code == 200:
+                with open(os.path.join(args.outpath, filename), "wb") as file:
+                    file.write(audio_response.content)
 
-        # cover_art = response['metadata'].get('cover')
-        # print(cover_art)
-        print(response['metadata']['cover'])
-        cover_art = requests.get(response['metadata']['cover'])
+            # cover_art = response['metadata'].get('cover')
+            # print(cover_art)
+            print(response['metadata']['cover'])
+            cover_art = requests.get(response['metadata']['cover'])
 
-        # https://stackoverflow.com/questions/38510694/how-to-add-album-art-to-mp3-file-using-python-3
-        audio_file = eyed3.load(os.path.join(args.outpath, filename))
+            # https://stackoverflow.com/questions/38510694/how-to-add-album-art-to-mp3-file-using-python-3
+            audio_file = eyed3.load(os.path.join(args.outpath, filename))
 
-        if (audio_file.tag is None):
-            audio_file.initTag()
+            if (audio_file.tag is None):
+                audio_file.initTag()
+            
+            audio_file.tag.images.set(ImageFrame.FRONT_COVER, cover_art.content, 'image/jpeg')
+
+            audio_file.tag.save()
+
+        elif link_type == "playlist":
+            print("Playlist support coming soon")
         
-        audio_file.tag.images.set(ImageFrame.FRONT_COVER, cover_art.content, 'image/jpeg')
-
-        audio_file.tag.save()
+        else:
+            print(f"{link} is not a valid Spotify track or playlist link")
 
 
 
