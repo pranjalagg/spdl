@@ -2,6 +2,8 @@ import argparse
 import os
 import requests
 import re
+import eyed3
+from eyed3.id3.frames import ImageFrame
 
 CUSTOM_HEADER = {
     'Host': 'api.spotifydown.com',
@@ -37,6 +39,21 @@ for link in args.link:
     if audio_response.status_code == 200:
         with open(os.path.join(args.outpath, filename), "wb") as file:
             file.write(audio_response.content)
+
+    # cover_art = response['metadata'].get('cover')
+    # print(cover_art)
+    print(response['metadata']['cover'])
+    cover_art = requests.get(response['metadata']['cover'])
+
+    # https://stackoverflow.com/questions/38510694/how-to-add-album-art-to-mp3-file-using-python-3
+    audio_file = eyed3.load(os.path.join(args.outpath, filename))
+
+    if (audio_file.tag is None):
+        audio_file.initTag()
+    
+    audio_file.tag.images.set(ImageFrame.FRONT_COVER, cover_art.content, 'image/jpeg')
+
+    audio_file.tag.save()
 
 
 
