@@ -1,6 +1,7 @@
 import argparse
 import os
 import requests
+import re
 
 CUSTOM_HEADER = {
     'Host': 'api.spotifydown.com',
@@ -22,7 +23,21 @@ print(args.link)
 for link in args.link:
     track_id = link.split("/")[-1].split("?")[0]
     response = requests.get(f"https://api.spotifydown.com/download/{track_id}", headers=CUSTOM_HEADER)
-    print(response)
+    # print(response.json())
+    response = response.json()
+    print(response['success'])
+    print(f"Song: {response['metadata']['title']}, Artist: {response['metadata']['artists']}, Album: {response['metadata']['album']}")
+    print(response['link'])
+
+    trackname = response['metadata']['title']
+    filename = re.sub(r"[<>:\"/\\|?*]", "_", f"{trackname}.mp3")
+
+    audio_response = requests.get(response['link'])
+
+    if audio_response.status_code == 200:
+        with open(os.path.join(args.outpath, filename), "wb") as file:
+            file.write(audio_response.content)
+
 
 
 
