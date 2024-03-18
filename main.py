@@ -13,14 +13,32 @@ CUSTOM_HEADER = {
 
 def check_track_playlist(link):
     # if "/track/" in link:
-    if re.search(r"^w{3}\.spotify\.com\/track\/", link):
+    if re.search(r".*spotify\.com\/track\/", link):
         return "track"
     # elif "/playlist/" in link:
-    elif re.search(r"^w{3}\.spotify\.com\/playlist\/", link):
+    elif re.search(r".*spotify\.com\/playlist\/", link):
         return "playlist"
     else:
         return None
         # print(f"{link} is not a valid Spotify track or playlist link")
+
+def  get_track_info(link):
+    track_id = link.split("/")[-1].split("?")[0]
+    response = requests.get(f"https://api.spotifydown.com/download/{track_id}", headers=CUSTOM_HEADER)
+    response = response.json()
+    print(response['success'])
+    # print(f"Song: {response['metadata']['title']}, Artist: {response['metadata']['artists']}, Album: {response['metadata']['album']}")
+    print(response['link'])
+
+    return response
+
+def save_audio(trackname, link, outpath):
+    filename = re.sub(r"[<>:\"/\\|?*]", "_", f"{trackname}.mp3")
+    audio_response = requests.get(link)
+
+    if audio_response.status_code == 200:
+        with open(os.path.join(outpath, filename), "wb") as file:
+            file.write(audio_response.content)
 
 def main():
     # Initialize parser
@@ -38,22 +56,20 @@ def main():
         link_type = check_track_playlist(link)
         if link_type == "track":
             print("Track link identified")
-            track_id = link.split("/")[-1].split("?")[0]
-            response = requests.get(f"https://api.spotifydown.com/download/{track_id}", headers=CUSTOM_HEADER)
-            # print(response.json())
-            response = response.json()
-            print(response['success'])
-            print(f"Song: {response['metadata']['title']}, Artist: {response['metadata']['artists']}, Album: {response['metadata']['album']}")
-            print(response['link'])
 
-            trackname = response['metadata']['title']
-            filename = re.sub(r"[<>:\"/\\|?*]", "_", f"{trackname}.mp3")
+            resp = get_track_info(link)
+            trackname = resp['metadata']['title']
+            print(trackname)
+            save_audio(trackname, resp['link'], args.outpath)
+            exit()
 
-            audio_response = requests.get(response['link'])
+            # filename = re.sub(r"[<>:\"/\\|?*]", "_", f"{trackname}.mp3")
 
-            if audio_response.status_code == 200:
-                with open(os.path.join(args.outpath, filename), "wb") as file:
-                    file.write(audio_response.content)
+            # audio_response = requests.get(response['link'])
+
+            # if audio_response.status_code == 200:
+            #     with open(os.path.join(args.outpath, filename), "wb") as file:
+            #         file.write(audio_response.content)
 
             # cover_art = response['metadata'].get('cover')
             # print(cover_art)
