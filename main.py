@@ -33,8 +33,10 @@ def  get_track_info(link):
     return response
 
 def attach_cover_art(trackname, cover_art, outpath):
+    print(outpath)
     audio_file = eyed3.load(os.path.join(outpath, f"{trackname}.mp3"))
 
+    # https://stackoverflow.com/questions/38510694/how-to-add-album-art-to-mp3-file-using-python-3
     if (audio_file.tag is None):
         audio_file.initTag()
 
@@ -49,17 +51,28 @@ def save_audio(trackname, link, outpath):
         with open(os.path.join(outpath, filename), "wb") as file:
             file.write(audio_response.content)
 
+def resolve_path(outpath):
+    if not os.path.exists(outpath):
+        create_dir = input("Directory entered does not exist. Do you want to create it? (y/N): ")
+        if create_dir.lower() == "y":
+            os.mkdir(outpath)
+        else:
+            print("Exiting program")
+            exit()
+
 def main():
     # Initialize parser
     parser = argparse.ArgumentParser(description="Program to download tracks from Spotify via CLI")
 
     # Add arguments
     parser.add_argument("-link", nargs="+", help="URL of the Spotify track")
-    parser.add_argument("outpath", nargs="?", default=os.getcwd(), help="Path to save the downloaded track")
+    parser.add_argument("-outpath", nargs="?", default=os.getcwd(), help="Path to save the downloaded track")
 
     args = parser.parse_args()
 
     # print(args.link)
+
+    resolve_path(args.outpath)
 
     for link in args.link:
         link_type = check_track_playlist(link)
@@ -71,14 +84,16 @@ def main():
             print(trackname)
             save_audio(trackname, resp['link'], args.outpath)
             cover_art = requests.get(resp['metadata']['cover'])
-            print(trackname)
-            attach_cover_art(trackname, cover_art, args.outpath)
+            print("------", trackname)
+            # attach_cover_art(trackname, cover_art, args.outpath)
 
         elif link_type == "playlist":
             print("Playlist support coming soon")
         
         else:
             print(f"{link} is not a valid Spotify track or playlist link")
+    
+    print("Download complete")
 
 
 
