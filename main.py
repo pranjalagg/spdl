@@ -26,9 +26,9 @@ def  get_track_info(link):
     track_id = link.split("/")[-1].split("?")[0]
     response = requests.get(f"https://api.spotifydown.com/download/{track_id}", headers=CUSTOM_HEADER)
     response = response.json()
-    print(response['success'])
+    # print(response['success'])
     # print(f"Song: {response['metadata']['title']}, Artist: {response['metadata']['artists']}, Album: {response['metadata']['album']}")
-    print(response['link'])
+    # print(response['link'])
 
     return response
 
@@ -44,12 +44,17 @@ def attach_cover_art(trackname, cover_art, outpath):
     audio_file.tag.save()
 
 def save_audio(trackname, link, outpath):
+    if os.path.exists(os.path.join(outpath, f"{trackname}.mp3")):
+        print(f"{trackname} already exists in the directory. Skipping download!")
+        return False
+    
     filename = re.sub(r"[<>:\"/\\|?*]", "_", f"{trackname}.mp3")
     audio_response = requests.get(link)
 
     if audio_response.status_code == 200:
         with open(os.path.join(outpath, filename), "wb") as file:
             file.write(audio_response.content)
+        return True
 
 def resolve_path(outpath):
     if not os.path.exists(outpath):
@@ -81,11 +86,13 @@ def main():
 
             resp = get_track_info(link)
             trackname = resp['metadata']['title']
-            print(trackname)
-            save_audio(trackname, resp['link'], args.outpath)
-            cover_art = requests.get(resp['metadata']['cover'])
-            print("------", trackname)
-            # attach_cover_art(trackname, cover_art, args.outpath)
+            # print(trackname)
+            save_status = save_audio(trackname, resp['link'], args.outpath)
+            # print("Save status: ", save_status)
+            if save_status:
+                cover_art = requests.get(resp['metadata']['cover'])
+                # print("------", trackname)
+                attach_cover_art(trackname, cover_art, args.outpath)
 
         elif link_type == "playlist":
             print("Playlist support coming soon")
