@@ -56,10 +56,11 @@ def save_audio(trackname, link, outpath):
             file.write(audio_response.content)
         return True
 
-def resolve_path(outpath):
+def resolve_path(outpath, playlist_folder=False):
     if not os.path.exists(outpath):
-        create_dir = input("Directory entered does not exist. Do you want to create it? (y/N): ")
-        if create_dir.lower() == "y":
+        if not playlist_folder:
+            create_dir = input("Directory entered does not exist. Do you want to create it? (y/N): ")
+        if playlist_folder or create_dir.lower() == "y":
             os.mkdir(outpath)
         else:
             print("Exiting program")
@@ -70,16 +71,17 @@ def get_playlist_info(link):
     playlist_id = link.split("/")[-1].split("?")[0]
     response = requests.get(f"https://api.spotifydown.com/metadata/playlist/{playlist_id}", headers=CUSTOM_HEADER)
     response = response.json()
+    playlist_name = response['title']
     if response['success']:
-        print(f"Playlist found, Name: {response['title']} by {response['artists']}")
+        print(f"Name: {playlist_name} by {response['artists']}")
     
     track_list = []
     response = requests.get(f"https://api.spotifydown.com/tracklist/playlist/{playlist_id}", headers=CUSTOM_HEADER)
     response = response.json()
     track_list.extend(response['trackList'])
-    print(track_list)
+    # print(track_list)
 
-    return track_list
+    return track_list, playlist_name
 
 def main():
     # Initialize parser
@@ -112,11 +114,12 @@ def main():
 
         elif link_type == "playlist":
             print("Playlist link identified")
-            resp_track_list = get_playlist_info(link)
+            resp_track_list, playlist_name = get_playlist_info(link)
             for track in resp_track_list:
                 trackname = track['title']
                 resp = get_track_info(f"https://open.spotify.com/track/{track['id']}")
-                save_status = save_audio(trackname, resp['link'], args.outpath)
+                resolve_path(os.path.join(args.outpath, playlist_name), playlist_folder=True)
+                save_status = save_audio(trackname, resp['link'], os.path.join(args.outpath, playlist_name))
                 if save_status:
                     cover_art = requests.get(track['cover'])
                     attach_cover_art(trackname, cover_art, args.outpath)
