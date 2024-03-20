@@ -26,7 +26,10 @@ To download a track or playlist, run the main file using the following command:\
 
 Optionally the download directory can be specified using the `-outpath` flag. If no outpath is provided, downloads default to the current directory.
 
-_Note: For playlists, by default the program saves the tracks in a folder with the name of the playlist_
+Example: `python main.py -link "https://open.spotify.com/track/6UVEJw6Ikma86JNK55KPkc?si=78dd2cdb137c4214" -outpath "F:/Songs/"
+
+_Note 1: You can paste more than one link one after the other seperated by space to download mutiple tracks at once_
+_Note 2: For playlists, by default the program saves the tracks in a folder with the name of the playlist_
 
 ## Feedback
 I would greatly appreciate your feedback after using the tool. Your insights helps it improve!
