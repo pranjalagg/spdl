@@ -131,6 +131,7 @@ def main():
             print("-" * 40 )
             for index, track in enumerate(resp_track_list, 1):
                 trackname = track['title']
+                trackname = re.sub(r"[<>:\"/\\|?*]", "_", trackname)
                 print(f"{index}/{len(resp_track_list)}: {trackname}")
                 resp = get_track_info(f"https://open.spotify.com/track/{track['id']}")
                 resolve_path(os.path.join(args.outpath, playlist_name), playlist_folder=True)
