@@ -7,7 +7,7 @@ This project is a tool to allow users to effortlessy download tracks and playlis
 
 > [!IMPORTANT]
 >
-> <sub>spdl is currently under development, so please expect frequent change to the way it works.</sub>
+> <sub>spdl is currently under development, so please expect frequent changes to the way it works.</sub>
 
 
 ## Requirements and Installation
