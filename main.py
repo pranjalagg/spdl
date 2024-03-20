@@ -65,6 +65,22 @@ def resolve_path(outpath):
             print("Exiting program")
             exit()
 
+
+def get_playlist_info(link):
+    playlist_id = link.split("/")[-1].split("?")[0]
+    response = requests.get(f"https://api.spotifydown.com/metadata/playlist/{playlist_id}", headers=CUSTOM_HEADER)
+    response = response.json()
+    if response['success']:
+        print(f"Playlist found, Name: {response['title']} by {response['artists']}")
+    
+    track_list = []
+    response = requests.get(f"https://api.spotifydown.com/tracklist/playlist/{playlist_id}", headers=CUSTOM_HEADER)
+    response = response.json()
+    track_list.extend(response['trackList'])
+    print(track_list)
+
+    return track_list
+
 def main():
     # Initialize parser
     parser = argparse.ArgumentParser(description="Program to download tracks from Spotify via CLI")
@@ -95,7 +111,15 @@ def main():
                 attach_cover_art(trackname, cover_art, args.outpath)
 
         elif link_type == "playlist":
-            print("Playlist support coming soon")
+            print("Playlist link identified")
+            resp_track_list = get_playlist_info(link)
+            for track in resp_track_list:
+                trackname = track['title']
+                resp = get_track_info(f"https://open.spotify.com/track/{track['id']}")
+                save_status = save_audio(trackname, resp['link'], args.outpath)
+                if save_status:
+                    cover_art = requests.get(track['cover'])
+                    attach_cover_art(trackname, cover_art, args.outpath)
         
         else:
             print(f"{link} is not a valid Spotify track or playlist link")
