@@ -50,11 +50,11 @@ def save_audio(trackname, link, outpath):
         print("\t This track already exists in the directory. Skipping download!")
         return False
     
-    filename = re.sub(r"[<>:\"/\\|?*]", "_", f"{trackname}.mp3")
+    # filename = re.sub(r"[<>:\"/\\|?*]", "_", f"{trackname}.mp3")
     audio_response = requests.get(link)
 
     if audio_response.status_code == 200:
-        with open(os.path.join(outpath, filename), "wb") as file:
+        with open(os.path.join(outpath, f"{trackname}.mp3"), "wb") as file:
             file.write(audio_response.content)
         return True
 
@@ -111,10 +111,11 @@ def main():
     for link in args.link:
         link_type = check_track_playlist(link)
         if link_type == "track":
-            print("Track link identified")
+            print("\nTrack link identified")
 
             resp = get_track_info(link)
             trackname = resp['metadata']['title']
+            trackname = re.sub(r"[<>:\"/\\|?*]", "_", trackname)
             # print(trackname)
             save_status = save_audio(trackname, resp['link'], args.outpath)
             # print("Save status: ", save_status)
