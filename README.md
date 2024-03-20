@@ -21,10 +21,12 @@ This project is a tool to allow users to effortlessy download tracks and playlis
 2. Execute `pip install -r requirements.txt` to install the dependencies
 
 ## Usage
-To download a track or playlist, run the main file using the following command:
-    `python main.py --link <link to your track or playlist>`
+To download a track or playlist, run the main file using the following command:\
+    `python main.py -link <link to your track or playlist>`\
 
-__Note: For playlists, by default the program saves the tracks in a folder with the name of the playlist__
+Optionally the download directory can be specified using the `-outpath` flag. If no outpath is provided, downloads default to the current directory.
+
+_Note: For playlists, by default the program saves the tracks in a folder with the name of the playlist_
 
 ## Feedback
 I would greatly appreciate your feedback after using the tool. Your insights helps it improve!
