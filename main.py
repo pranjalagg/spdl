@@ -79,6 +79,14 @@ def get_playlist_info(link):
     response = requests.get(f"https://api.spotifydown.com/tracklist/playlist/{playlist_id}", headers=CUSTOM_HEADER)
     response = response.json()
     track_list.extend(response['trackList'])
+    next_offset = response['nextOffset']
+    while next_offset:
+        response = requests.get(f"https://api.spotifydown.com/tracklist/playlist/{playlist_id}?offset={next_offset}", headers=CUSTOM_HEADER)
+        response = response.json()
+        track_list.extend(response['trackList'])
+        next_offset = response['nextOffset']
+
+    print(len(track_list))
     # print(track_list)
 
     return track_list, playlist_name
