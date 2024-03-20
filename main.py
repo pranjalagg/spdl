@@ -4,6 +4,8 @@ import requests
 import re
 import eyed3
 from eyed3.id3.frames import ImageFrame
+# Suppress warnings
+eyed3.log.setLevel("ERROR")
 
 CUSTOM_HEADER = {
     'Host': 'api.spotifydown.com',
@@ -45,7 +47,7 @@ def attach_cover_art(trackname, cover_art, outpath):
 
 def save_audio(trackname, link, outpath):
     if os.path.exists(os.path.join(outpath, f"{trackname}.mp3")):
-        print("This track already exists in the directory. Skipping download!")
+        print("\t This track already exists in the directory. Skipping download!")
         return False
     
     filename = re.sub(r"[<>:\"/\\|?*]", "_", f"{trackname}.mp3")
@@ -73,6 +75,7 @@ def get_playlist_info(link):
     response = response.json()
     playlist_name = response['title']
     if response['success']:
+        print("-" * 40)
         print(f"Name: {playlist_name} by {response['artists']}")
     
     track_list = []
@@ -121,11 +124,13 @@ def main():
                 attach_cover_art(trackname, cover_art, args.outpath)
 
         elif link_type == "playlist":
-            print("Playlist link identified")
+            print("\nPlaylist link identified")
             resp_track_list, playlist_name = get_playlist_info(link)
+            print(f"Downloading {len(resp_track_list)} tracks from {playlist_name}")
+            print("-" * 40 )
             for index, track in enumerate(resp_track_list, 1):
                 trackname = track['title']
-                print(f"Downloading {index}/{len(resp_track_list)}: {trackname}")
+                print(f"{index}/{len(resp_track_list)}: {trackname}")
                 resp = get_track_info(f"https://open.spotify.com/track/{track['id']}")
                 resolve_path(os.path.join(args.outpath, playlist_name), playlist_folder=True)
                 save_status = save_audio(trackname, resp['link'], os.path.join(args.outpath, playlist_name))
@@ -136,7 +141,7 @@ def main():
         else:
             print(f"{link} is not a valid Spotify track or playlist link")
     
-    print("Download complete")
+    print("\n" + "-"*25 + " Download complete ;) " + "-"*25 + "\n")
 
 
 
