@@ -86,8 +86,8 @@ def get_playlist_info(link):
         track_list.extend(response['trackList'])
         next_offset = response['nextOffset']
 
-    print(len(track_list))
-    # print(track_list)
+    # print(len(set(track_list)))
+    # print(len(dict.fromkeys(track_list)))
 
     return track_list, playlist_name
 
