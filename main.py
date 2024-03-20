@@ -33,7 +33,7 @@ def  get_track_info(link):
     return response
 
 def attach_cover_art(trackname, cover_art, outpath):
-    print(outpath)
+    # print(outpath)
     audio_file = eyed3.load(os.path.join(outpath, f"{trackname}.mp3"))
 
     # https://stackoverflow.com/questions/38510694/how-to-add-album-art-to-mp3-file-using-python-3
@@ -45,7 +45,7 @@ def attach_cover_art(trackname, cover_art, outpath):
 
 def save_audio(trackname, link, outpath):
     if os.path.exists(os.path.join(outpath, f"{trackname}.mp3")):
-        print(f"{trackname} already exists in the directory. Skipping download!")
+        print("This track already exists in the directory. Skipping download!")
         return False
     
     filename = re.sub(r"[<>:\"/\\|?*]", "_", f"{trackname}.mp3")
@@ -123,14 +123,15 @@ def main():
         elif link_type == "playlist":
             print("Playlist link identified")
             resp_track_list, playlist_name = get_playlist_info(link)
-            for track in resp_track_list:
+            for index, track in enumerate(resp_track_list, 1):
                 trackname = track['title']
+                print(f"Downloading {index}/{len(resp_track_list)}: {trackname}")
                 resp = get_track_info(f"https://open.spotify.com/track/{track['id']}")
                 resolve_path(os.path.join(args.outpath, playlist_name), playlist_folder=True)
                 save_status = save_audio(trackname, resp['link'], os.path.join(args.outpath, playlist_name))
                 if save_status:
                     cover_art = requests.get(track['cover'])
-                    attach_cover_art(trackname, cover_art, args.outpath)
+                    attach_cover_art(trackname, cover_art, os.path.join(args.outpath, playlist_name))
         
         else:
             print(f"{link} is not a valid Spotify track or playlist link")

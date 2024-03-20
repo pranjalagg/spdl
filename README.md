@@ -22,7 +22,7 @@ This project is a tool to allow users to effortlessy download tracks and playlis
 
 ## Usage
 To download a track or playlist, run the main file using the following command:\
-    `python main.py -link <link to your track or playlist>`\
+    `python main.py -link <link to your track or playlist>`
 
 Optionally the download directory can be specified using the `-outpath` flag. If no outpath is provided, downloads default to the current directory.
 
