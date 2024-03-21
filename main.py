@@ -4,6 +4,7 @@ import requests
 import re
 import eyed3
 import logging
+import json
 from eyed3.id3.frames import ImageFrame
 # Suppress warnings
 eyed3.log.setLevel("ERROR")
@@ -96,6 +97,14 @@ def get_playlist_info(link):
 
     return track_list, playlist_name
 
+def sync_playlist_folders(sync_file):
+    with open(sync_file, "r") as file:
+        data_to_sync = json.load(file)
+        # print(data_to_sync)
+        for data in data_to_sync:
+            print("Link: ", data['link'])
+            print("Folder: ", data['create_folder'])
+
 def main():
     # Initialize parser
     parser = argparse.ArgumentParser(description="Program to download tracks from Spotify via CLI")
@@ -103,8 +112,33 @@ def main():
     # Add arguments
     parser.add_argument("-link", nargs="+", help="URL of the Spotify track")
     parser.add_argument("-outpath", nargs="?", default=os.getcwd(), help="Path to save the downloaded track")
+    parser.add_argument("-sync", nargs="?", const="sync.json", help="Sync local playlist folders to your Spotify account")
+
 
     args = parser.parse_args()
+    # print(args)
+
+    if args.sync:
+        if (os.path.exists(os.path.abspath(args.sync))):
+            print("Syncing local playlist folders to your Spotify account")
+            sync_playlist_folders(os.path.abspath(args.sync))
+        else:
+            create_sync_file = input("Sync file does not exist. Do you want to create it? (y/N):")
+            if create_sync_file.lower() == "y":
+                data_for_sync_file = []
+                while True:
+                    playlist_link = input("Playlist link (leave empty to finish): ")
+                    if not playlist_link:
+                        break
+                    create_folder = input("Do you want to create a folder for this playlist? (y/N): ")
+                    download_location = input("Download location for tracks of this playlist (leave empty to default to current directory): ")
+                    data_for_sync_file.append({"link": playlist_link, "create_folder": create_folder.lower() == "y", "download_location": download_location if download_location else os.getcwd()})
+                with open(os.path.abspath(args.sync), "w") as file:
+                    json.dump(data_for_sync_file, file)
+                print("Sync file created successfully")
+                print("-" * 40)
+
+    exit()
 
     # print(args.link)
 
