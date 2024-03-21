@@ -3,10 +3,12 @@ import os
 import requests
 import re
 import eyed3
+import logging
 from eyed3.id3.frames import ImageFrame
 # Suppress warnings
 eyed3.log.setLevel("ERROR")
-
+logging.basicConfig(filename="spdl.log", filemode="a", level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', encoding="utf-8")
+# logging.basicConfig(filename='app.log', level=logging.INFO)
 CUSTOM_HEADER = {
     'Host': 'api.spotifydown.com',
     'Referer': 'https://spotifydown.com/',
@@ -107,7 +109,6 @@ def main():
     # print(args.link)
 
     resolve_path(args.outpath)
-
     for link in args.link:
         link_type = check_track_playlist(link)
         if link_type == "track":
@@ -117,12 +118,17 @@ def main():
             trackname = resp['metadata']['title']
             trackname = re.sub(r"[<>:\"/\\|?*]", "_", trackname)
             # print(trackname)
-            save_status = save_audio(trackname, resp['link'], args.outpath)
-            # print("Save status: ", save_status)
-            if save_status:
-                cover_art = requests.get(resp['metadata']['cover'])
-                # print("------", trackname)
-                attach_cover_art(trackname, cover_art, args.outpath)
+            try:
+                # raise Exception("Testing")
+                save_status = save_audio(trackname, resp['link'], args.outpath)
+                # print("Save status: ", save_status)
+                if save_status:
+                    cover_art = requests.get(resp['metadata']['cover'])
+                    # print("------", trackname)
+                    attach_cover_art(trackname, cover_art, args.outpath)
+            except Exception as e:
+                logging.error(f"{trackname} --> {e}")
+                print("Error: ", e)
 
         elif link_type == "playlist":
             print("\nPlaylist link identified")
@@ -133,12 +139,17 @@ def main():
                 trackname = track['title']
                 trackname = re.sub(r"[<>:\"/\\|?*]", "_", trackname)
                 print(f"{index}/{len(resp_track_list)}: {trackname}")
-                resp = get_track_info(f"https://open.spotify.com/track/{track['id']}")
-                resolve_path(os.path.join(args.outpath, playlist_name), playlist_folder=True)
-                save_status = save_audio(trackname, resp['link'], os.path.join(args.outpath, playlist_name))
-                if save_status:
-                    cover_art = requests.get(track['cover'])
-                    attach_cover_art(trackname, cover_art, os.path.join(args.outpath, playlist_name))
+                try:
+                    # raise Exception("Testing")
+                    resp = get_track_info(f"https://open.spotify.com/track/{track['id']}")
+                    resolve_path(os.path.join(args.outpath, playlist_name), playlist_folder=True)
+                    save_status = save_audio(trackname, resp['link'], os.path.join(args.outpath, playlist_name))
+                    if save_status:
+                        cover_art = requests.get(track['cover'])
+                        attach_cover_art(trackname, cover_art, os.path.join(args.outpath, playlist_name))
+                except Exception as e:
+                    logging.error(f"{playlist_name}: {trackname} --> {e}")
+                    print("Error: ", e)
         
         else:
             print(f"{link} is not a valid Spotify track or playlist link")
