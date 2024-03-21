@@ -105,6 +105,46 @@ def sync_playlist_folders(sync_file):
             print("Link: ", data['link'])
             print("Folder: ", data['create_folder'])
 
+def download_track(track_link, outpath):
+    print("\nTrack link identified")
+
+    resp = get_track_info(track_link)
+    trackname = resp['metadata']['title']
+    trackname = re.sub(r"[<>:\"/\\|?*]", "_", trackname)
+    # print(trackname)
+    try:
+        # raise Exception("Testing")
+        save_status = save_audio(trackname, resp['link'], outpath)
+        # print("Save status: ", save_status)
+        if save_status:
+            cover_art = requests.get(resp['metadata']['cover'])
+            # print("------", trackname)
+            attach_cover_art(trackname, cover_art, outpath)
+    except Exception as e:
+        logging.error(f"{trackname} --> {e}")
+        print("Error: ", e)
+
+def download_playlist_tracks(playlist_link, outpath):
+    print("\nPlaylist link identified")
+    resp_track_list, playlist_name = get_playlist_info(playlist_link)
+    print(f"Downloading {len(resp_track_list)} tracks from {playlist_name}")
+    print("-" * 40 )
+    for index, track in enumerate(resp_track_list, 1):
+        trackname = track['title']
+        trackname = re.sub(r"[<>:\"/\\|?*]", "_", trackname)
+        print(f"{index}/{len(resp_track_list)}: {trackname}")
+        try:
+            # raise Exception("Testing")
+            resp = get_track_info(f"https://open.spotify.com/track/{track['id']}")
+            resolve_path(os.path.join(outpath, playlist_name), playlist_folder=True)
+            save_status = save_audio(trackname, resp['link'], os.path.join(outpath, playlist_name))
+            if save_status:
+                cover_art = requests.get(track['cover'])
+                attach_cover_art(trackname, cover_art, os.path.join(outpath, playlist_name))
+        except Exception as e:
+            logging.error(f"{playlist_name}: {trackname} --> {e}")
+            print("Error: ", e)
+
 def main():
     # Initialize parser
     parser = argparse.ArgumentParser(description="Program to download tracks from Spotify via CLI")
@@ -138,7 +178,6 @@ def main():
                 print("Sync file created successfully")
                 print("-" * 40)
 
-    exit()
 
     # print(args.link)
 
@@ -146,45 +185,11 @@ def main():
     for link in args.link:
         link_type = check_track_playlist(link)
         if link_type == "track":
-            print("\nTrack link identified")
-
-            resp = get_track_info(link)
-            trackname = resp['metadata']['title']
-            trackname = re.sub(r"[<>:\"/\\|?*]", "_", trackname)
-            # print(trackname)
-            try:
-                # raise Exception("Testing")
-                save_status = save_audio(trackname, resp['link'], args.outpath)
-                # print("Save status: ", save_status)
-                if save_status:
-                    cover_art = requests.get(resp['metadata']['cover'])
-                    # print("------", trackname)
-                    attach_cover_art(trackname, cover_art, args.outpath)
-            except Exception as e:
-                logging.error(f"{trackname} --> {e}")
-                print("Error: ", e)
+            download_track(link, args.outpath)
 
         elif link_type == "playlist":
-            print("\nPlaylist link identified")
-            resp_track_list, playlist_name = get_playlist_info(link)
-            print(f"Downloading {len(resp_track_list)} tracks from {playlist_name}")
-            print("-" * 40 )
-            for index, track in enumerate(resp_track_list, 1):
-                trackname = track['title']
-                trackname = re.sub(r"[<>:\"/\\|?*]", "_", trackname)
-                print(f"{index}/{len(resp_track_list)}: {trackname}")
-                try:
-                    # raise Exception("Testing")
-                    resp = get_track_info(f"https://open.spotify.com/track/{track['id']}")
-                    resolve_path(os.path.join(args.outpath, playlist_name), playlist_folder=True)
-                    save_status = save_audio(trackname, resp['link'], os.path.join(args.outpath, playlist_name))
-                    if save_status:
-                        cover_art = requests.get(track['cover'])
-                        attach_cover_art(trackname, cover_art, os.path.join(args.outpath, playlist_name))
-                except Exception as e:
-                    logging.error(f"{playlist_name}: {trackname} --> {e}")
-                    print("Error: ", e)
-        
+            download_playlist_tracks(link, args.outpath)
+
         else:
             print(f"{link} is not a valid Spotify track or playlist link")
     
