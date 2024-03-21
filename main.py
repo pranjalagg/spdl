@@ -145,6 +145,31 @@ def download_playlist_tracks(playlist_link, outpath):
             logging.error(f"{playlist_name}: {trackname} --> {e}")
             print("Error: ", e)
 
+def handle_sync_file(sync_file):
+    if (os.path.exists(sync_file)):
+        print("Syncing local playlist folders to your Spotify account")
+        sync_playlist_folders(sync_file)
+    else:
+        create_sync_file = input("Sync file does not exist. Do you want to create it? (y/N):")
+        if create_sync_file.lower() == "y":
+            data_for_sync_file = []
+            while True:
+                print("-" * 40)
+                playlist_link = input("Playlist link (leave empty to finish): ")
+                if not playlist_link:
+                    break
+                create_folder = input("Do you want to create a folder for this playlist? (y/N): ")
+                download_location = input("Download location for tracks of this playlist (leave empty to default to current directory): ")
+                data_for_sync_file.append({"link": playlist_link, "create_folder": create_folder.lower() == "y", "download_location": download_location if download_location else os.getcwd()})
+            with open(sync_file, "w") as file:
+                json.dump(data_for_sync_file, file)
+            print("Sync file created successfully")
+            print("-" * 40)
+        else:
+            print("Exiting program")
+            exit()
+
+
 def main():
     # Initialize parser
     parser = argparse.ArgumentParser(description="Program to download tracks from Spotify via CLI")
@@ -159,41 +184,25 @@ def main():
     # print(args)
 
     if args.sync:
-        if (os.path.exists(os.path.abspath(args.sync))):
-            print("Syncing local playlist folders to your Spotify account")
-            sync_playlist_folders(os.path.abspath(args.sync))
-        else:
-            create_sync_file = input("Sync file does not exist. Do you want to create it? (y/N):")
-            if create_sync_file.lower() == "y":
-                data_for_sync_file = []
-                while True:
-                    playlist_link = input("Playlist link (leave empty to finish): ")
-                    if not playlist_link:
-                        break
-                    create_folder = input("Do you want to create a folder for this playlist? (y/N): ")
-                    download_location = input("Download location for tracks of this playlist (leave empty to default to current directory): ")
-                    data_for_sync_file.append({"link": playlist_link, "create_folder": create_folder.lower() == "y", "download_location": download_location if download_location else os.getcwd()})
-                with open(os.path.abspath(args.sync), "w") as file:
-                    json.dump(data_for_sync_file, file)
-                print("Sync file created successfully")
-                print("-" * 40)
+        handle_sync_file(os.path.abspath(args.sync))
 
 
     # print(args.link)
 
-    resolve_path(args.outpath)
-    for link in args.link:
-        link_type = check_track_playlist(link)
-        if link_type == "track":
-            download_track(link, args.outpath)
+    else:
+        resolve_path(args.outpath)
+        for link in args.link:
+            link_type = check_track_playlist(link)
+            if link_type == "track":
+                download_track(link, args.outpath)
 
-        elif link_type == "playlist":
-            download_playlist_tracks(link, args.outpath)
+            elif link_type == "playlist":
+                download_playlist_tracks(link, args.outpath)
 
-        else:
-            print(f"{link} is not a valid Spotify track or playlist link")
+            else:
+                print(f"{link} is not a valid Spotify track or playlist link")
     
-    print("\n" + "-"*25 + " Download complete ;) " + "-"*25 + "\n")
+    print("\n" + "-"*25 + " Task complete ;) " + "-"*25 + "\n")
 
 
 
