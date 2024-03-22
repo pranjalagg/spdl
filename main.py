@@ -16,16 +16,20 @@ CUSTOM_HEADER = {
     'Origin': 'https://spotifydown.com',
 }
 
-def check_track_playlist(link):
+def check_track_playlist(link, outpath, create_folder=True):
+    resolve_path(outpath)
     # if "/track/" in link:
     if re.search(r".*spotify\.com\/track\/", link):
-        return "track"
+        # return "track"
+        download_track(link, outpath)
     # elif "/playlist/" in link:
     elif re.search(r".*spotify\.com\/playlist\/", link):
-        return "playlist"
+        # return "playlist"
+        download_playlist_tracks(link, outpath, create_folder)
     else:
-        return None
-        # print(f"{link} is not a valid Spotify track or playlist link")
+        logging.error(f"{link} is not a valid Spotify track or playlist link")
+        # return None
+        print(f"{link} is not a valid Spotify track or playlist link")
 
 def  get_track_info(link):
     track_id = link.split("/")[-1].split("?")[0]
@@ -50,6 +54,7 @@ def attach_cover_art(trackname, cover_art, outpath):
 
 def save_audio(trackname, link, outpath):
     if os.path.exists(os.path.join(outpath, f"{trackname}.mp3")):
+        logging.info(f"{trackname} already exists in the directory ({outpath}). Skipping download!")
         print("\t This track already exists in the directory. Skipping download!")
         return False
     
@@ -62,10 +67,13 @@ def save_audio(trackname, link, outpath):
         return True
 
 def resolve_path(outpath, playlist_folder=False):
+    # if playlist_name and playlist_folder:
+    #     outpath = os.path.join(outpath, playlist_name)
+    # print("Path: ", outpath)
     if not os.path.exists(outpath):
         if not playlist_folder:
-            create_dir = input("Directory entered does not exist. Do you want to create it? (y/N): ")
-        if playlist_folder or create_dir.lower() == "y":
+            create_folder = input("Directory specified does not exist. Do you want to create it? (y/N): ")
+        if playlist_folder or create_folder.lower() == "y":
             os.mkdir(outpath)
         else:
             print("Exiting program")
@@ -102,8 +110,8 @@ def sync_playlist_folders(sync_file):
         data_to_sync = json.load(file)
         # print(data_to_sync)
         for data in data_to_sync:
-            print("Link: ", data['link'])
-            print("Folder: ", data['create_folder'])
+            check_track_playlist(data['link'], data['download_location'], create_folder=data['create_folder'])
+            # download_playlist_tracks(data['link'], data['download_location'])
 
 def download_track(track_link, outpath):
     print("\nTrack link identified")
@@ -124,11 +132,13 @@ def download_track(track_link, outpath):
         logging.error(f"{trackname} --> {e}")
         print("Error: ", e)
 
-def download_playlist_tracks(playlist_link, outpath):
+def download_playlist_tracks(playlist_link, outpath, create_folder):
     print("\nPlaylist link identified")
     resp_track_list, playlist_name = get_playlist_info(playlist_link)
     print(f"Downloading {len(resp_track_list)} tracks from {playlist_name}")
     print("-" * 40 )
+    if create_folder:
+        outpath = os.path.join(outpath, playlist_name)
     for index, track in enumerate(resp_track_list, 1):
         trackname = track['title']
         trackname = re.sub(r"[<>:\"/\\|?*]", "_", trackname)
@@ -136,11 +146,11 @@ def download_playlist_tracks(playlist_link, outpath):
         try:
             # raise Exception("Testing")
             resp = get_track_info(f"https://open.spotify.com/track/{track['id']}")
-            resolve_path(os.path.join(outpath, playlist_name), playlist_folder=True)
-            save_status = save_audio(trackname, resp['link'], os.path.join(outpath, playlist_name))
+            resolve_path(outpath, playlist_folder=True)
+            save_status = save_audio(trackname, resp['link'], outpath)
             if save_status:
                 cover_art = requests.get(track['cover'])
-                attach_cover_art(trackname, cover_art, os.path.join(outpath, playlist_name))
+                attach_cover_art(trackname, cover_art, outpath)
         except Exception as e:
             logging.error(f"{playlist_name}: {trackname} --> {e}")
             print("Error: ", e)
@@ -190,17 +200,17 @@ def main():
     # print(args.link)
 
     else:
-        resolve_path(args.outpath)
+        # resolve_path(args.outpath)
         for link in args.link:
-            link_type = check_track_playlist(link)
-            if link_type == "track":
-                download_track(link, args.outpath)
+            check_track_playlist(link, args.outpath)
+            # if link_type == "track":
+            #     download_track(link, args.outpath)
 
-            elif link_type == "playlist":
-                download_playlist_tracks(link, args.outpath)
+            # elif link_type == "playlist":
+            #     download_playlist_tracks(link, args.outpath)
 
-            else:
-                print(f"{link} is not a valid Spotify track or playlist link")
+            # else:
+            #     print(f"{link} is not a valid Spotify track or playlist link")
     
     print("\n" + "-"*25 + " Task complete ;) " + "-"*25 + "\n")
 
@@ -209,4 +219,5 @@ def main():
 
     # https://open.spotify.com/track/0b4a1iklB8w8gsE38nzyEx?si=d5986255e2464129
 
-main()
+if __name__ == "__main__":
+    main()
