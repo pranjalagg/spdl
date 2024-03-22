@@ -132,7 +132,7 @@ def download_track(track_link, outpath):
         logging.error(f"{trackname} --> {e}")
         print("Error: ", e)
 
-def download_playlist_tracks(playlist_link, outpath, create_folder):
+def download_playlist_tracks(playlist_link, outpath, create_folder, max_attempts=3):
     print("\nPlaylist link identified")
     resp_track_list, playlist_name = get_playlist_info(playlist_link)
     print(f"Downloading {len(resp_track_list)} tracks from {playlist_name}")
@@ -143,17 +143,19 @@ def download_playlist_tracks(playlist_link, outpath, create_folder):
         trackname = track['title']
         trackname = re.sub(r"[<>:\"/\\|?*]", "_", trackname)
         print(f"{index}/{len(resp_track_list)}: {trackname}")
-        try:
-            # raise Exception("Testing")
-            resp = get_track_info(f"https://open.spotify.com/track/{track['id']}")
-            resolve_path(outpath, playlist_folder=True)
-            save_status = save_audio(trackname, resp['link'], outpath)
-            if save_status:
-                cover_art = requests.get(track['cover'])
-                attach_cover_art(trackname, cover_art, outpath)
-        except Exception as e:
-            logging.error(f"{playlist_name}: {trackname} --> {e}")
-            print("Error: ", e)
+        for attempt in range(max_attempts):
+            try:
+                # raise Exception("Testing")
+                resp = get_track_info(f"https://open.spotify.com/track/{track['id']}")
+                resolve_path(outpath, playlist_folder=True)
+                save_status = save_audio(trackname, resp['link'], outpath)
+                if save_status:
+                    cover_art = requests.get(track['cover'])
+                    attach_cover_art(trackname, cover_art, outpath)
+                break
+            except Exception as e:
+                logging.error(f"Attempt {attempt+1} - {playlist_name}: {trackname} --> {e}")
+                print(f"\t\tAttempt {attempt+1} failed with error: ", e)
 
 def handle_sync_file(sync_file):
     if (os.path.exists(sync_file)):
@@ -220,4 +222,6 @@ def main():
     # https://open.spotify.com/track/0b4a1iklB8w8gsE38nzyEx?si=d5986255e2464129
 
 if __name__ == "__main__":
+    logging.info("-" * 10 + "Program started" + "-" * 10)
     main()
+    logging.info("-" * 10 + "Program ended" + "-" * 10)
