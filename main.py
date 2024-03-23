@@ -17,6 +17,8 @@ CUSTOM_HEADER = {
     'Origin': 'https://spotifydown.com',
 }
 
+TRACKNAME_REGEX = re.compile(r"[<>:\"/\\|?*]")
+
 @dataclass(init=True, eq=True, frozen=True)
 class Song:
     title: str
@@ -47,7 +49,7 @@ def check_track_playlist(link, outpath, create_folder=True):
     else:
         logging.error(f"{link} is not a valid Spotify track or playlist link")
         # return None
-        print(f"{link} is not a valid Spotify track or playlist link")
+        print(f"\n{link} is not a valid Spotify track or playlist link")
 
 def  get_track_info(link):
     track_id = link.split("/")[-1].split("?")[0]
@@ -61,16 +63,24 @@ def  get_track_info(link):
 
 def attach_cover_art(trackname, cover_art, outpath):
     # print(outpath)
+    trackname = re.sub(TRACKNAME_REGEX, "_", trackname)
     audio_file = eyed3.load(os.path.join(outpath, f"{trackname}.mp3"))
 
     # https://stackoverflow.com/questions/38510694/how-to-add-album-art-to-mp3-file-using-python-3
-    if (audio_file.tag is None):
-        audio_file.initTag()
+    try:
+        # raise Exception("Testing")
+        if (audio_file.tag is None):
+            audio_file.initTag()
 
-    audio_file.tag.images.set(ImageFrame.FRONT_COVER, cover_art.content, 'image/jpeg')
-    audio_file.tag.save()
+        audio_file.tag.images.set(ImageFrame.FRONT_COVER, cover_art.content, 'image/jpeg')
+        audio_file.tag.save()
+    except Exception as e:
+        logging.error(f"Error attaching cover art to {trackname} --> {e}")
+        print(f"\tError attaching cover art --> {e}")
+        # print(e)
 
 def save_audio(trackname, link, outpath):
+    trackname = re.sub(TRACKNAME_REGEX, "_", trackname)
     if os.path.exists(os.path.join(outpath, f"{trackname}.mp3")):
         logging.info(f"{trackname} already exists in the directory ({outpath}). Skipping download!")
         print("\t This track already exists in the directory. Skipping download!")
@@ -112,7 +122,8 @@ def dict_unique(song_list):
     for song in song_list:
         if (unique_songs.get(f"{song.title} - {song.artists}")):
             duplicate_songs.append(f"{song.title} - {song.artists}")
-        unique_songs.setdefault(f"{song.title} - {song.artists}", song)
+        else:
+            unique_songs.setdefault(f"{song.title} - {song.artists}", song)
     return unique_songs, duplicate_songs
 
 def make_unique_song_objects(track_list):
@@ -130,13 +141,14 @@ def make_unique_song_objects(track_list):
     # unique_songs = set_unique(song_list)
     unique_songs, duplicate_songs = dict_unique(song_list)
 
-    print("\nDuplicate songs: ", len(duplicate_songs))
-    for index, song_name in enumerate(duplicate_songs, 1):
-        print(f"\t{index}: {song_name}")
+    if (len(duplicate_songs)):
+        print("\tDuplicate songs: ", len(duplicate_songs))
+        for index, song_name in enumerate(duplicate_songs, 1):
+            print(f"\t\t{index}: {song_name}")
 
-    print("\nSongs to download: ", len(unique_songs))
+    print("\n\tSongs to download: ", len(unique_songs))
     for index, song_name in enumerate(unique_songs.keys(), 1):
-        print(f"\t{index}: {song_name}")
+        print(f"\t\t{index}: {song_name}")
     
     return unique_songs
 
@@ -160,59 +172,62 @@ def get_playlist_info(link):
         track_list.extend(response['trackList'])
         next_offset = response['nextOffset']
 
-    song_list = make_unique_song_objects(track_list)
-    print(len(song_list))
+    song_list_dict = make_unique_song_objects(track_list)
     # print(track_list)
     # exit()
+    return song_list_dict, playlist_name
 
-    return track_list, playlist_name
+    # return track_list, playlist_name
 
 def sync_playlist_folders(sync_file):
     with open(sync_file, "r") as file:
         data_to_sync = json.load(file)
         # print(data_to_sync)
         for data in data_to_sync:
-            check_track_playlist(data['link'], data['download_location'], create_folder=data['create_folder'])
+            check_track_playlist(data['link'], data['download_location'], data['create_folder'])
             # download_playlist_tracks(data['link'], data['download_location'])
 
-def download_track(track_link, outpath):
+def download_track(track_link, outpath, max_attempts=3):
     print("\nTrack link identified")
 
     resp = get_track_info(track_link)
     trackname = resp['metadata']['title']
-    trackname = re.sub(r"[<>:\"/\\|?*]", "_", trackname)
+    print(f"\nDownloading {trackname} to {outpath}")
+    # trackname = re.sub(r"[<>:\"/\\|?*]", "_", trackname)
     # print(trackname)
-    try:
-        # raise Exception("Testing")
-        save_status = save_audio(trackname, resp['link'], outpath)
-        # print("Save status: ", save_status)
-        if save_status:
-            cover_art = requests.get(resp['metadata']['cover'])
-            # print("------", trackname)
-            attach_cover_art(trackname, cover_art, outpath)
-    except Exception as e:
-        logging.error(f"{trackname} --> {e}")
-        print("Error: ", e)
+    for attempt in range(max_attempts):
+        try:
+            # raise Exception("Testing")
+            save_status = save_audio(trackname, resp['link'], outpath)
+            # print("Save status: ", save_status)
+            if save_status:
+                cover_art = requests.get(resp['metadata']['cover'])
+                # print("------", trackname)
+                attach_cover_art(trackname, cover_art, outpath)
+            break
+        except Exception as e:
+            logging.error(f"Attempt {attempt+1} - {trackname} --> {e}")
+            print(f"\tAttempt {attempt+1} failed with error: ", e)
 
 def download_playlist_tracks(playlist_link, outpath, create_folder, max_attempts=3):
     print("\nPlaylist link identified")
-    resp_track_list, playlist_name = get_playlist_info(playlist_link)
-    print(f"Downloading {len(resp_track_list)} tracks from {playlist_name}")
+    song_list_dict, playlist_name = get_playlist_info(playlist_link)
+    print(f"\nDownloading {len(song_list_dict)} tracks from {playlist_name} to {outpath}")
     print("-" * 40 )
     if create_folder:
         outpath = os.path.join(outpath, playlist_name)
-    for index, track in enumerate(resp_track_list, 1):
-        trackname = track['title']
-        trackname = re.sub(r"[<>:\"/\\|?*]", "_", trackname)
-        print(f"{index}/{len(resp_track_list)}: {trackname}")
+    for index, trackname in enumerate(song_list_dict.keys(), 1):
+        # trackname = track
+        # trackname = re.sub(r"[<>:\"/\\|?*]", "_", trackname)
+        print(f"{index}/{len(song_list_dict)}: {trackname}")
         for attempt in range(max_attempts):
             try:
                 # raise Exception("Testing")
-                resp = get_track_info(f"https://open.spotify.com/track/{track['id']}")
+                resp = get_track_info(song_list_dict[trackname].link)
                 resolve_path(outpath, playlist_folder=True)
                 save_status = save_audio(trackname, resp['link'], outpath)
                 if save_status:
-                    cover_art = requests.get(track['cover'])
+                    cover_art = requests.get(song_list_dict[trackname].cover)
                     attach_cover_art(trackname, cover_art, outpath)
                 break
             except Exception as e:
@@ -221,7 +236,7 @@ def download_playlist_tracks(playlist_link, outpath, create_folder, max_attempts
 
 def handle_sync_file(sync_file):
     if (os.path.exists(sync_file)):
-        print("Syncing local playlist folders to your Spotify account")
+        print("Syncing local playlist folders with Spotify playlists")
         sync_playlist_folders(sync_file)
     else:
         create_sync_file = input("Sync file does not exist. Do you want to create it? (y/N):")
@@ -232,7 +247,7 @@ def handle_sync_file(sync_file):
                 playlist_link = input("Playlist link (leave empty to finish): ")
                 if not playlist_link:
                     break
-                create_folder = input("Do you want to create a folder for this playlist? (y/N): ")
+                create_folder = input("Create a folder for this playlist? (y/N): ")
                 download_location = input("Download location for tracks of this playlist (leave empty to default to current directory): ")
                 data_for_sync_file.append({"link": playlist_link, "create_folder": create_folder.lower() == "y", "download_location": download_location if download_location else os.getcwd()})
             with open(sync_file, "w") as file:
@@ -249,9 +264,9 @@ def main():
     parser = argparse.ArgumentParser(description="Program to download tracks from Spotify via CLI")
 
     # Add arguments
-    parser.add_argument("-link", nargs="+", help="URL of the Spotify track")
+    parser.add_argument("-link", nargs="+", help="URL of the Spotify track or playlist ")
     parser.add_argument("-outpath", nargs="?", default=os.getcwd(), help="Path to save the downloaded track")
-    parser.add_argument("-sync", nargs="?", const="sync.json", help="Sync local playlist folders to your Spotify account")
+    parser.add_argument("-sync", nargs="?", const="sync.json", help="Path of sync.json file to sync local playlist folders with Spotify playlists")
 
 
     args = parser.parse_args()
