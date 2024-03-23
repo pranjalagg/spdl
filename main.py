@@ -5,6 +5,7 @@ import re
 import eyed3
 import logging
 import json
+from dataclasses import dataclass
 from eyed3.id3.frames import ImageFrame
 # Suppress warnings
 eyed3.log.setLevel("ERROR")
@@ -15,6 +16,23 @@ CUSTOM_HEADER = {
     'Referer': 'https://spotifydown.com/',
     'Origin': 'https://spotifydown.com',
 }
+
+@dataclass(init=True, eq=True, frozen=True)
+class Song:
+    title: str
+    artists: str
+    album: str
+    cover: str
+    link: str
+
+    # def __eq__(self, other):
+    #     if not isinstance(other, Song):
+    #         return False
+    #     return self.title == other.title and self.artists == other.artists and self.album == other.album
+    
+    # def __hash__(self):
+    #     print("Hello 2")
+    #     return hash((self.title, self.artists, self.album))
 
 def check_track_playlist(link, outpath, create_folder=True):
     resolve_path(outpath)
@@ -79,6 +97,48 @@ def resolve_path(outpath, playlist_folder=False):
             print("Exiting program")
             exit()
 
+# def set_unique(song_list):
+#     print("----------- Set ----------")
+#     unique_songs = set(song_list)
+#     duplicate_songs = [song for song in song_list if song not in unique_songs]
+#     print("Duplicate songs ", duplicate_songs)
+#     print("Unique songs ", unique_songs)
+#     return unique_songs
+
+def dict_unique(song_list):
+    # print("----------- Dict ----------")
+    unique_songs = {}
+    duplicate_songs = []
+    for song in song_list:
+        if (unique_songs.get(f"{song.title} - {song.artists}")):
+            duplicate_songs.append(f"{song.title} - {song.artists}")
+        unique_songs.setdefault(f"{song.title} - {song.artists}", song)
+    return unique_songs, duplicate_songs
+
+def make_unique_song_objects(track_list):
+    song_list = []
+    for track in track_list:
+        song_list.append(
+            Song(
+                title=track['title'],
+                artists=track['artists'],
+                album=track['album'],
+                cover=track['cover'],
+                link=f"https://open.spotify.com/track/{track['id']}"
+            )
+        )
+    # unique_songs = set_unique(song_list)
+    unique_songs, duplicate_songs = dict_unique(song_list)
+
+    print("\nDuplicate songs: ", len(duplicate_songs))
+    for index, song_name in enumerate(duplicate_songs, 1):
+        print(f"\t{index}: {song_name}")
+
+    print("\nSongs to download: ", len(unique_songs))
+    for index, song_name in enumerate(unique_songs.keys(), 1):
+        print(f"\t{index}: {song_name}")
+    
+    return unique_songs
 
 def get_playlist_info(link):
     playlist_id = link.split("/")[-1].split("?")[0]
@@ -100,8 +160,10 @@ def get_playlist_info(link):
         track_list.extend(response['trackList'])
         next_offset = response['nextOffset']
 
-    # print(len(set(track_list)))
-    # print(len(dict.fromkeys(track_list)))
+    song_list = make_unique_song_objects(track_list)
+    print(len(song_list))
+    # print(track_list)
+    # exit()
 
     return track_list, playlist_name
 
