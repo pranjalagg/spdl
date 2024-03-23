@@ -228,7 +228,8 @@ def download_playlist_tracks(playlist_link, outpath, create_folder, max_attempts
     if create_folder:
         outpath = os.path.join(outpath, playlist_name)
 
-    song_list_dict = check_existing_tracks(song_list_dict, outpath)
+    if os.path.exists(outpath):
+        song_list_dict = check_existing_tracks(song_list_dict, outpath)
     if not song_list_dict:
         print(f"\nAll tracks from {playlist_name} already exist in the directory ({outpath}).")
         return
@@ -269,7 +270,15 @@ def handle_sync_file(sync_file):
                     break
                 create_folder = input("Create a folder for this playlist? (y/N): ")
                 download_location = input("Download location for tracks of this playlist (leave empty to default to current directory): ")
-                data_for_sync_file.append({"link": playlist_link, "create_folder": create_folder.lower() == "y", "download_location": download_location if download_location else os.getcwd()})
+                _, playlist_name = get_playlist_info(playlist_link)
+                data_for_sync_file.append(
+                    {
+                        "name": playlist_name,
+                        "link": playlist_link,
+                        "create_folder": create_folder.lower() == "y",
+                        "download_location": download_location if download_location else os.getcwd()
+                    }
+                )
             with open(sync_file, "w") as file:
                 json.dump(data_for_sync_file, file)
             print("Sync file created successfully")
