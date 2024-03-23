@@ -131,7 +131,7 @@ def make_unique_song_objects(track_list):
     for track in track_list:
         song_list.append(
             Song(
-                title=track['title'],
+                title=re.sub(TRACKNAME_REGEX, "_", track['title']),
                 artists=track['artists'],
                 album=track['album'],
                 cover=track['cover'],
@@ -146,7 +146,7 @@ def make_unique_song_objects(track_list):
         for index, song_name in enumerate(duplicate_songs, 1):
             print(f"\t\t{index}: {song_name}")
 
-    print("\n\tSongs to download: ", len(unique_songs))
+    print("\n\tUnique Songs in playlist: ", len(unique_songs))
     for index, song_name in enumerate(unique_songs.keys(), 1):
         print(f"\t\t{index}: {song_name}")
     
@@ -209,13 +209,32 @@ def download_track(track_link, outpath, max_attempts=3):
             logging.error(f"Attempt {attempt+1} - {trackname} --> {e}")
             print(f"\tAttempt {attempt+1} failed with error: ", e)
 
+def check_existing_tracks(song_list_dict, outpath):
+    existing_tracks = os.listdir(outpath)
+    for track in existing_tracks:
+        if track.endswith(".mp3"):
+            track = track.split(".mp3")[0]
+            if song_list_dict.get(track):
+                logging.info(f"{track} already exists in the directory ({outpath}). Skipping download!")
+                # print(f"\t{track} already exists in the directory. Skipping download!")
+                song_list_dict.pop(track)
+    
+    return song_list_dict
+
 def download_playlist_tracks(playlist_link, outpath, create_folder, max_attempts=3):
     print("\nPlaylist link identified")
     song_list_dict, playlist_name = get_playlist_info(playlist_link)
-    print(f"\nDownloading {len(song_list_dict)} tracks from {playlist_name} to {outpath}")
-    print("-" * 40 )
+
     if create_folder:
         outpath = os.path.join(outpath, playlist_name)
+
+    song_list_dict = check_existing_tracks(song_list_dict, outpath)
+    if not song_list_dict:
+        print(f"\nAll tracks from {playlist_name} already exist in the directory ({outpath}).")
+        return
+    
+    print(f"\nDownloading {len(song_list_dict)} new track(s) from {playlist_name} to ({outpath})")
+    print("-" * 40 )
     for index, trackname in enumerate(song_list_dict.keys(), 1):
         # trackname = track
         # trackname = re.sub(r"[<>:\"/\\|?*]", "_", trackname)
@@ -238,6 +257,7 @@ def handle_sync_file(sync_file):
     if (os.path.exists(sync_file)):
         print("Syncing local playlist folders with Spotify playlists")
         sync_playlist_folders(sync_file)
+        print("Sync complete!")
     else:
         create_sync_file = input("Sync file does not exist. Do you want to create it? (y/N):")
         if create_sync_file.lower() == "y":
