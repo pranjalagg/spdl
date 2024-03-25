@@ -17,7 +17,7 @@ CUSTOM_HEADER = {
     'Origin': 'https://spotifydown.com',
 }
 
-TRACKNAME_REGEX = re.compile(r"[<>:\"/\\|?*]")
+TRACKNAME_REGEX = re.compile(r"[<>:\"\/\\|?*]")
 
 @dataclass(init=True, eq=True, frozen=True)
 class Song:
@@ -132,7 +132,7 @@ def make_unique_song_objects(track_list):
         song_list.append(
             Song(
                 title=re.sub(TRACKNAME_REGEX, "_", track['title']),
-                artists=track['artists'],
+                artists=re.sub(TRACKNAME_REGEX, "_", track['artists']),
                 album=track['album'],
                 cover=track['cover'],
                 link=f"https://open.spotify.com/track/{track['id']}"
@@ -191,8 +191,8 @@ def download_track(track_link, outpath, max_attempts=3):
     print("\nTrack link identified")
 
     resp = get_track_info(track_link)
-    trackname = resp['metadata']['title']
-    print(f"\nDownloading {trackname} to {outpath}")
+    trackname = f"{resp['metadata']['title']} - {resp['metadata']['artists']}"
+    print(f"\nDownloading {trackname} to ({outpath})")
     # trackname = re.sub(r"[<>:\"/\\|?*]", "_", trackname)
     # print(trackname)
     for attempt in range(max_attempts):
@@ -208,6 +208,7 @@ def download_track(track_link, outpath, max_attempts=3):
         except Exception as e:
             logging.error(f"Attempt {attempt+1} - {trackname} --> {e}")
             print(f"\tAttempt {attempt+1} failed with error: ", e)
+    remove_empty_files(outpath)
 
 def check_existing_tracks(song_list_dict, outpath):
     existing_tracks = os.listdir(outpath)
@@ -215,11 +216,16 @@ def check_existing_tracks(song_list_dict, outpath):
         if track.endswith(".mp3"):
             track = track.split(".mp3")[0]
             if song_list_dict.get(track):
-                logging.info(f"{track} already exists in the directory ({outpath}). Skipping download!")
+                logging.info(f"{track} already exists in the directory ({outpath}). Skipping download!---")
                 # print(f"\t{track} already exists in the directory. Skipping download!")
                 song_list_dict.pop(track)
     
     return song_list_dict
+
+def remove_empty_files(outpath):
+    for file in os.listdir(outpath):
+        if os.path.getsize(os.path.join(outpath, file)) == 0:
+            os.remove(os.path.join(outpath, file))
 
 def download_playlist_tracks(playlist_link, outpath, create_folder, max_attempts=3):
     print("\nPlaylist link identified")
@@ -249,15 +255,18 @@ def download_playlist_tracks(playlist_link, outpath, create_folder, max_attempts
                 if save_status:
                     cover_art = requests.get(song_list_dict[trackname].cover)
                     attach_cover_art(trackname, cover_art, outpath)
-                break
+                    break
             except Exception as e:
                 logging.error(f"Attempt {attempt+1} - {playlist_name}: {trackname} --> {e}")
                 print(f"\t\tAttempt {attempt+1} failed with error: ", e)
+            
+    remove_empty_files(outpath)
 
 def handle_sync_file(sync_file):
     if (os.path.exists(sync_file)):
         print("Syncing local playlist folders with Spotify playlists")
         sync_playlist_folders(sync_file)
+        print("-" * 40)
         print("Sync complete!")
     else:
         create_sync_file = input("Sync file does not exist. Do you want to create it? (y/N):")
