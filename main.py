@@ -216,7 +216,7 @@ def check_existing_tracks(song_list_dict, outpath):
         if track.endswith(".mp3"):
             track = track.split(".mp3")[0]
             if song_list_dict.get(track):
-                logging.info(f"{track} already exists in the directory ({outpath}). Skipping download!---")
+                # logging.info(f"{track} already exists in the directory ({outpath}). Skipping download!")
                 # print(f"\t{track} already exists in the directory. Skipping download!")
                 song_list_dict.pop(track)
     
