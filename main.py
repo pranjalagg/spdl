@@ -36,7 +36,7 @@ class Song:
     #     print("Hello 2")
     #     return hash((self.title, self.artists, self.album))
 
-def check_track_playlist(link, outpath, create_folder=True):
+def check_track_playlist(link, outpath, create_folder):
     resolve_path(outpath)
     # if "/track/" in link:
     if re.search(r".*spotify\.com\/track\/", link):
@@ -232,11 +232,8 @@ def download_playlist_tracks(playlist_link, outpath, create_folder, max_attempts
     print("\nPlaylist link identified")
     song_list_dict, playlist_name = get_playlist_info(playlist_link)
 
-    create_folder = "y"
-    create_folder = input("Create a folder for this playlist? (Y/n): ")
-    create_folder = create_folder.lower() == "y"
 
-    if create_folder:
+    if create_folder == True:
         outpath = os.path.join(outpath, playlist_name)
 
     if os.path.exists(outpath):
@@ -310,6 +307,7 @@ def main():
     parser.add_argument("-link", nargs="+", help="URL of the Spotify track or playlist ")
     parser.add_argument("-outpath", nargs="?", default=os.getcwd(), help="Path to save the downloaded track")
     parser.add_argument("-sync", nargs="?", const="sync.json", help="Path of sync.json file to sync local playlist folders with Spotify playlists")
+    parser.add_argument("-folder", nargs="?", default=True, help="Create a folder for the playlist(s)")
 
 
     args = parser.parse_args()
@@ -324,7 +322,7 @@ def main():
     else:
         # resolve_path(args.outpath)
         for link in args.link:
-            check_track_playlist(link, args.outpath)
+            check_track_playlist(link, args.outpath, create_folder=args.folder)
             # if link_type == "track":
             #     download_track(link, args.outpath)
 
