@@ -47,6 +47,25 @@ _Note 2: For playlists, by default the program saves the tracks in a folder with
 7. Download / Sync Spotify playlists with local playlists when sync.json is in a specified directory:\
    `python main.py -sync "F:/Songs/sync.json"`
 
+### sync.json Structure
+The first time you try to run the sync command, the program will ask you for the playlist info and the sync.json will be created automatically. If you wish to manually create a sync.json file or modify the existing one, use the following structure:
+```json
+[
+    {
+        "name": "<Playlist Name 1>",
+        "link": "<Playlist Link>",
+        "create_folder": true,
+        "download_location": "F:/Songs"
+    },
+    {
+        "name": "<Playlist Name 2>",
+        "link": "<Playlist Link>",
+        "create_folder": true,
+        "download_location": "F:/Songs"
+    }
+]
+```
+
 
 ## Feedback
 I would greatly appreciate your feedback after using the tool. Your insights helps it improve!
