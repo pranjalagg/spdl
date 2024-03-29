@@ -161,6 +161,7 @@ def get_playlist_info(link):
         print("-" * 40)
         print(f"Name: {playlist_name} by {response['artists']}")
     
+    print("Getting songs from playlist (this might take a while ...)")
     track_list = []
     response = requests.get(f"https://api.spotifydown.com/tracklist/playlist/{playlist_id}", headers=CUSTOM_HEADER)
     response = response.json()
@@ -230,6 +231,10 @@ def remove_empty_files(outpath):
 def download_playlist_tracks(playlist_link, outpath, create_folder, max_attempts=3):
     print("\nPlaylist link identified")
     song_list_dict, playlist_name = get_playlist_info(playlist_link)
+
+    create_folder = "y"
+    create_folder = input("Create a folder for this playlist? (Y/n): ")
+    create_folder = create_folder.lower() == "y"
 
     if create_folder:
         outpath = os.path.join(outpath, playlist_name)
