@@ -33,19 +33,33 @@ _Note 2: For playlists, by default the program saves the tracks in a folder with
 
 ## Different Use Cases
 1. Download a single track or playlist:\
-   `python main.py -link "https://open.spotify.com/track/6UVEJw6Ikma86JNK55KPkc?si=78dd2cdb137c4214"`
-2. Download a single track or playlist at a specified location:\
-   `python main.py -link "https://open.spotify.com/track/6UVEJw6Ikma86JNK55KPkc?si=78dd2cdb137c4214" -outpath "F:/Songs"`
-3. Download multiple  tracks / multiple playlists / or a combination:\
-   `python main.py -link "https://open.spotify.com/track/6UVEJw6Ikma86JNK55KPkc?si=78dd2cdb137c4214" "https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M?si=9fab95ad8ab349a7"`
-4. Download multiple  tracks / multiple playlists / or a combination to a specified location:\
-   `python main.py -link "https://open.spotify.com/track/6UVEJw6Ikma86JNK55KPkc?si=78dd2cdb137c4214" "https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M?si=9fab95ad8ab349a7" -outpath "F:/Songs`
-5. Download playlist(s) track in a single folder (default is to make playlist folder(s)):\
-   `python main.py -link "https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M?si=9fab95ad8ab349a7" -outpath "F:/Songs" -folder False`
-6. Download / Sync Spotify playlists with local playlists when sync.json is not present or is in present directory:\
-   `python main.py -sync`
-7. Download / Sync Spotify playlists with local playlists when sync.json is in a specified directory:\
-   `python main.py -sync "F:/Songs/sync.json"`
+   ```ps1
+   python main.py -link "https://open.spotify.com/track/6UVEJw6Ikma86JNK55KPkc?si=78dd2cdb137c4214"
+   ```
+3. Download a single track or playlist at a specified location:\
+   ```ps1
+   python main.py -link "https://open.spotify.com/track/6UVEJw6Ikma86JNK55KPkc?si=78dd2cdb137c4214" -outpath "F:/Songs"
+   ```
+5. Download multiple  tracks / multiple playlists / or a combination:\
+   ```ps1
+   python main.py -link "https://open.spotify.com/track/6UVEJw6Ikma86JNK55KPkc?si=78dd2cdb137c4214" "https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M?si=9fab95ad8ab349a7"
+   ```
+7. Download multiple  tracks / multiple playlists / or a combination to a specified location:\
+   ```ps1
+   python main.py -link "https://open.spotify.com/track/6UVEJw6Ikma86JNK55KPkc?si=78dd2cdb137c4214" "https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M?si=9fab95ad8ab349a7" -outpath "F:/Songs
+   ```
+9. Download playlist(s) track in a single folder (default is to make playlist folder(s)):\
+   ```ps1
+   python main.py -link "https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M?si=9fab95ad8ab349a7" -outpath "F:/Songs" -folder False
+   ```
+11. Download / Sync Spotify playlists with local playlists when sync.json is not present or is in present directory:\
+   ```ps1
+   python main.py -sync
+   ```
+13. Download / Sync Spotify playlists with local playlists when sync.json is in a specified directory:\
+   ```ps1
+    python main.py -sync "F:/Songs/sync.json"
+   ```
 
 ### sync.json Structure
 The first time you try to run the sync command, the program will ask you for the playlist info and the sync.json will be created automatically. If you wish to manually create a sync.json file or modify the existing one, use the following structure:
