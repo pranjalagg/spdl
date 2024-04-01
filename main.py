@@ -192,6 +192,10 @@ def download_track(track_link, outpath, max_attempts=3):
     print("\nTrack link identified")
 
     resp = get_track_info(track_link)
+    if resp['success'] == False:
+        print(f"Error: {resp['message']}")
+        logging.error(f"Error: {resp['message']}")
+        return
     trackname = f"{resp['metadata']['title']} - {resp['metadata']['artists']}"
     print(f"\nDownloading {trackname} to ({outpath})")
     # trackname = re.sub(r"[<>:\"/\\|?*]", "_", trackname)
