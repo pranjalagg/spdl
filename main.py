@@ -187,8 +187,12 @@ def sync_playlist_folders(sync_file):
     with open(sync_file, "r") as file:
         data_to_sync = json.load(file)
         # print(data_to_sync)
+        set_trackname_convention = 1
         for data in data_to_sync:
-            check_track_playlist(data['link'], data['download_location'], data['create_folder'])
+            if data.get("convention_code"):
+                set_trackname_convention = data["convention_code"]
+                continue
+            check_track_playlist(data['link'], data['download_location'], data['create_folder'], set_trackname_convention)
             # download_playlist_tracks(data['link'], data['download_location'])
 
 def download_track(track_link, outpath, trackname_convention, max_attempts=3):
@@ -285,6 +289,13 @@ def handle_sync_file(sync_file):
         create_sync_file = input("Sync file does not exist. Do you want to create it? (y/N):")
         if create_sync_file.lower() == "y":
             data_for_sync_file = []
+            trackname_type, set_trackname_convention = trackname_convention()
+            data_for_sync_file.append(
+                {
+                    "convention_code": set_trackname_convention,
+                    "trackname_convention": trackname_type,
+                }
+            )
             while True:
                 print("-" * 40)
                 playlist_link = input("Playlist link (leave empty to finish): ")
@@ -292,7 +303,7 @@ def handle_sync_file(sync_file):
                     break
                 create_folder = input("Create a folder for this playlist? (y/N): ")
                 download_location = input("Download location for tracks of this playlist (leave empty to default to current directory): ")
-                _, playlist_name = get_playlist_info(playlist_link)
+                _, playlist_name = get_playlist_info(playlist_link, set_trackname_convention)
                 data_for_sync_file.append(
                     {
                         "name": playlist_name,
@@ -316,8 +327,8 @@ def trackname_convention():
     num = int(input("Enter the number corresponding to the naming convention: "))
     if num != 1 and num != 2:
         print("Invalid input. Defaulting to Title - Artist")
-        return 1
-    return num
+        return "Title - Artist", 1
+    return "Artist - Title", num
 
 def main():
     # Initialize parser
@@ -333,7 +344,6 @@ def main():
     args = parser.parse_args()
     # print(args)
 
-    set_trackname_convention = trackname_convention()
 
     if args.sync:
         handle_sync_file(os.path.abspath(args.sync))
@@ -342,6 +352,7 @@ def main():
     # print(args.link)
 
     else:
+        _, set_trackname_convention = trackname_convention()
         # resolve_path(args.outpath)
         for link in args.link:
             check_track_playlist(link, args.outpath, create_folder=args.folder, trackname_convention=set_trackname_convention)
