@@ -36,16 +36,16 @@ class Song:
     #     print("Hello 2")
     #     return hash((self.title, self.artists, self.album))
 
-def check_track_playlist(link, outpath, create_folder):
+def check_track_playlist(link, outpath, create_folder, trackname_convention):
     resolve_path(outpath)
     # if "/track/" in link:
     if re.search(r".*spotify\.com\/track\/", link):
         # return "track"
-        download_track(link, outpath)
+        download_track(link, outpath, trackname_convention)
     # elif "/playlist/" in link:
     elif re.search(r".*spotify\.com\/playlist\/", link):
         # return "playlist"
-        download_playlist_tracks(link, outpath, create_folder)
+        download_playlist_tracks(link, outpath, create_folder, trackname_convention)
     else:
         logging.error(f"{link} is not a valid Spotify track or playlist link")
         # return None
@@ -115,18 +115,21 @@ def resolve_path(outpath, playlist_folder=False):
 #     print("Unique songs ", unique_songs)
 #     return unique_songs
 
-def dict_unique(song_list):
+def dict_unique(song_list, trackname_convention):
     # print("----------- Dict ----------")
     unique_songs = {}
     duplicate_songs = []
     for song in song_list:
-        if (unique_songs.get(f"{song.title} - {song.artists}")):
-            duplicate_songs.append(f"{song.title} - {song.artists}")
+        trackname = f"{song.title} - {song.artists}"
+        if trackname_convention == 2:
+            trackname = f"{song.artists} - {song.title}"
+        if (unique_songs.get(trackname)):
+            duplicate_songs.append(trackname)
         else:
-            unique_songs.setdefault(f"{song.title} - {song.artists}", song)
+            unique_songs.setdefault(trackname, song)
     return unique_songs, duplicate_songs
 
-def make_unique_song_objects(track_list):
+def make_unique_song_objects(track_list, trackname_convention):
     song_list = []
     for track in track_list:
         song_list.append(
@@ -139,7 +142,7 @@ def make_unique_song_objects(track_list):
             )
         )
     # unique_songs = set_unique(song_list)
-    unique_songs, duplicate_songs = dict_unique(song_list)
+    unique_songs, duplicate_songs = dict_unique(song_list, trackname_convention)
 
     if (len(duplicate_songs)):
         print("\tDuplicate songs: ", len(duplicate_songs))
@@ -152,7 +155,7 @@ def make_unique_song_objects(track_list):
     
     return unique_songs
 
-def get_playlist_info(link):
+def get_playlist_info(link, trackname_convention):
     playlist_id = link.split("/")[-1].split("?")[0]
     response = requests.get(f"https://api.spotifydown.com/metadata/playlist/{playlist_id}", headers=CUSTOM_HEADER)
     response = response.json()
@@ -173,7 +176,7 @@ def get_playlist_info(link):
         track_list.extend(response['trackList'])
         next_offset = response['nextOffset']
 
-    song_list_dict = make_unique_song_objects(track_list)
+    song_list_dict = make_unique_song_objects(track_list, trackname_convention)
     # print(track_list)
     # exit()
     return song_list_dict, playlist_name
@@ -184,11 +187,15 @@ def sync_playlist_folders(sync_file):
     with open(sync_file, "r") as file:
         data_to_sync = json.load(file)
         # print(data_to_sync)
+        set_trackname_convention = 1
         for data in data_to_sync:
-            check_track_playlist(data['link'], data['download_location'], data['create_folder'])
+            if data.get("convention_code"):
+                set_trackname_convention = data["convention_code"]
+                continue
+            check_track_playlist(data['link'], data['download_location'], data['create_folder'], set_trackname_convention)
             # download_playlist_tracks(data['link'], data['download_location'])
 
-def download_track(track_link, outpath, max_attempts=3):
+def download_track(track_link, outpath, trackname_convention, max_attempts=3):
     print("\nTrack link identified")
 
     resp = get_track_info(track_link)
@@ -196,7 +203,11 @@ def download_track(track_link, outpath, max_attempts=3):
         print(f"Error: {resp['message']}")
         logging.error(f"Error: {resp['message']}")
         return
+    
     trackname = f"{resp['metadata']['title']} - {resp['metadata']['artists']}"
+    if trackname_convention == 2:
+        trackname = f"{resp['metadata']['artists']} - {resp['metadata']['title']}"
+
     print(f"\nDownloading {trackname} to ({outpath})")
     # trackname = re.sub(r"[<>:\"/\\|?*]", "_", trackname)
     # print(trackname)
@@ -232,9 +243,9 @@ def remove_empty_files(outpath):
         if os.path.getsize(os.path.join(outpath, file)) == 0:
             os.remove(os.path.join(outpath, file))
 
-def download_playlist_tracks(playlist_link, outpath, create_folder, max_attempts=3):
+def download_playlist_tracks(playlist_link, outpath, create_folder, trackname_convention, max_attempts=3):
     print("\nPlaylist link identified")
-    song_list_dict, playlist_name = get_playlist_info(playlist_link)
+    song_list_dict, playlist_name = get_playlist_info(playlist_link, trackname_convention)
 
 
     if create_folder == True:
@@ -278,6 +289,13 @@ def handle_sync_file(sync_file):
         create_sync_file = input("Sync file does not exist. Do you want to create it? (y/N):")
         if create_sync_file.lower() == "y":
             data_for_sync_file = []
+            trackname_type, set_trackname_convention = trackname_convention()
+            data_for_sync_file.append(
+                {
+                    "convention_code": set_trackname_convention,
+                    "trackname_convention": trackname_type,
+                }
+            )
             while True:
                 print("-" * 40)
                 playlist_link = input("Playlist link (leave empty to finish): ")
@@ -285,7 +303,7 @@ def handle_sync_file(sync_file):
                     break
                 create_folder = input("Create a folder for this playlist? (y/N): ")
                 download_location = input("Download location for tracks of this playlist (leave empty to default to current directory): ")
-                _, playlist_name = get_playlist_info(playlist_link)
+                _, playlist_name = get_playlist_info(playlist_link, set_trackname_convention)
                 data_for_sync_file.append(
                     {
                         "name": playlist_name,
@@ -302,6 +320,15 @@ def handle_sync_file(sync_file):
             print("Exiting program")
             exit()
 
+def trackname_convention():
+    print("How would you like to name the tracks?")
+    print("1. Title - Artist")
+    print("2. Artist - Title")
+    num = int(input("Enter the number corresponding to the naming convention: "))
+    if num != 1 and num != 2:
+        print("Invalid input. Defaulting to Title - Artist")
+        return "Title - Artist", 1
+    return "Artist - Title", num
 
 def main():
     # Initialize parser
@@ -317,6 +344,7 @@ def main():
     args = parser.parse_args()
     # print(args)
 
+
     if args.sync:
         handle_sync_file(os.path.abspath(args.sync))
 
@@ -324,9 +352,10 @@ def main():
     # print(args.link)
 
     else:
+        _, set_trackname_convention = trackname_convention()
         # resolve_path(args.outpath)
         for link in args.link:
-            check_track_playlist(link, args.outpath, create_folder=args.folder)
+            check_track_playlist(link, args.outpath, create_folder=args.folder, trackname_convention=set_trackname_convention)
             # if link_type == "track":
             #     download_track(link, args.outpath)
 
