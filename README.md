@@ -89,5 +89,5 @@ The first time you try to run the sync command, the program will ask you for the
 ## Feedback
 I would greatly appreciate your feedback after using the tool. Your insights helps it improve!
 
-## Feature Request
-As mentioned this project is under development and I would love to take feature requests. To request a feature, please raise it as an issue under the [Issues](https://github.com/pranjalagg/spdl/issues) tab.
+## Feature Request/Contributions
+I would not be able to take in feature requests at this point, but I would love to accept contributions/pull requests if anyone is willing to work on any issue.
