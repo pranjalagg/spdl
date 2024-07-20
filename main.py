@@ -2,13 +2,15 @@ import argparse
 import os
 import requests
 import re
-import eyed3
+# import eyed3
 import logging
 import json
 from dataclasses import dataclass
-from eyed3.id3.frames import ImageFrame
+from mutagen.mp3 import MP3
+from mutagen.id3 import ID3, APIC, error
+# from eyed3.id3.frames import ImageFrame
 # Suppress warnings
-eyed3.log.setLevel("ERROR")
+# eyed3.log.setLevel("ERROR")
 logging.basicConfig(filename="spdl.log", filemode="a", level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', encoding="utf-8")
 # logging.basicConfig(filename='app.log', level=logging.INFO)
 CUSTOM_HEADER = {
@@ -60,24 +62,52 @@ def  get_track_info(link):
     # print(response['link'])
 
     return response
+# def attach_cover_art(trackname, cover_art, outpath):
+#     # print(outpath)
+#     trackname = re.sub(TRACKNAME_REGEX, "_", trackname)
+#     audio_file = eyed3.load(os.path.join(outpath, f"{trackname}.mp3"))
+
+#     # https://stackoverflow.com/questions/38510694/how-to-add-album-art-to-mp3-file-using-python-3
+#     try:
+#         # raise Exception("Testing")
+#         if (audio_file.tag is None):
+#             audio_file.initTag()
+
+#         audio_file.tag.images.set(ImageFrame.FRONT_COVER, cover_art.content, 'image/jpeg')
+#         audio_file.tag.save()
+#     except Exception as e:
+#         logging.error(f"Error attaching cover art to {trackname} --> {e}")
+#         print(f"\tError attaching cover art --> {e}")
+#         # print(e)
 
 def attach_cover_art(trackname, cover_art, outpath):
-    # print(outpath)
     trackname = re.sub(TRACKNAME_REGEX, "_", trackname)
-    audio_file = eyed3.load(os.path.join(outpath, f"{trackname}.mp3"))
-
-    # https://stackoverflow.com/questions/38510694/how-to-add-album-art-to-mp3-file-using-python-3
+    filepath = os.path.join(outpath, f"{trackname}.mp3")
     try:
-        # raise Exception("Testing")
-        if (audio_file.tag is None):
-            audio_file.initTag()
+        # raise error("Testing")
+        audio = MP3(filepath, ID3=ID3)
+    except error as e:
+        logging.error(f"Error loading MP3 file from {filepath} --> {e}")
+        print(f"\t Error loading MP3 file --> {e}")
+        return
 
-        audio_file.tag.images.set(ImageFrame.FRONT_COVER, cover_art.content, 'image/jpeg')
-        audio_file.tag.save()
-    except Exception as e:
-        logging.error(f"Error attaching cover art to {trackname} --> {e}")
-        print(f"\tError attaching cover art --> {e}")
-        # print(e)
+    if audio.tags is None:
+        try:
+            audio.add_tags()
+        except error as e:
+            logging.error(f"Error adding ID3 tags to {filepath} --> {e}")
+            print(f"\tError adding ID3 tags --> {e}")
+            return 
+        
+    audio.tags.add(
+        APIC(
+            encoding=1,
+            mime='image/jpeg',
+            type=3,
+            desc=u'Cover',
+            data=cover_art)
+        )
+    audio.save(filepath, v2_version=3, v1=2)
 
 def save_audio(trackname, link, outpath):
     trackname = re.sub(TRACKNAME_REGEX, "_", trackname)
@@ -217,7 +247,7 @@ def download_track(track_link, outpath, trackname_convention, max_attempts=3):
             save_status = save_audio(trackname, resp['link'], outpath)
             # print("Save status: ", save_status)
             if save_status:
-                cover_art = requests.get(resp['metadata']['cover'])
+                cover_art = requests.get(resp['metadata']['cover']).content
                 # print("------", trackname)
                 attach_cover_art(trackname, cover_art, outpath)
             break
@@ -270,7 +300,7 @@ def download_playlist_tracks(playlist_link, outpath, create_folder, trackname_co
                 resolve_path(outpath, playlist_folder=True)
                 save_status = save_audio(trackname, resp['link'], outpath)
                 if save_status:
-                    cover_art = requests.get(song_list_dict[trackname].cover)
+                    cover_art = requests.get(song_list_dict[trackname].cover).content
                     attach_cover_art(trackname, cover_art, outpath)
                     break
             except Exception as e:
