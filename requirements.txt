@@ -1,2 +1,2 @@
-eyed3==0.9.7
-Requests==2.31.0
+mutagen==1.47.0
+Requests==2.32.3
