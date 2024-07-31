@@ -19,7 +19,7 @@ CUSTOM_HEADER = {
     'Origin': 'https://spotifydown.com',
 }
 
-TRACKNAME_REGEX = re.compile(r"[<>:\"\/\\|?*]")
+NAME_SANITIZE_REGEX = re.compile(r"[<>:\"\/\\|?*]")
 
 @dataclass(init=True, eq=True, frozen=True)
 class Song:
@@ -64,7 +64,7 @@ def  get_track_info(link):
     return response
 # def attach_cover_art(trackname, cover_art, outpath):
 #     # print(outpath)
-#     trackname = re.sub(TRACKNAME_REGEX, "_", trackname)
+#     trackname = re.sub(NAME_SANITIZE_REGEX, "_", trackname)
 #     audio_file = eyed3.load(os.path.join(outpath, f"{trackname}.mp3"))
 
 #     # https://stackoverflow.com/questions/38510694/how-to-add-album-art-to-mp3-file-using-python-3
@@ -81,7 +81,7 @@ def  get_track_info(link):
 #         # print(e)
 
 def attach_cover_art(trackname, cover_art, outpath):
-    trackname = re.sub(TRACKNAME_REGEX, "_", trackname)
+    trackname = re.sub(NAME_SANITIZE_REGEX, "_", trackname)
     filepath = os.path.join(outpath, f"{trackname}.mp3")
     try:
         # raise error("Testing")
@@ -110,7 +110,7 @@ def attach_cover_art(trackname, cover_art, outpath):
     audio.save(filepath, v2_version=3, v1=2)
 
 def save_audio(trackname, link, outpath):
-    trackname = re.sub(TRACKNAME_REGEX, "_", trackname)
+    trackname = re.sub(NAME_SANITIZE_REGEX, "_", trackname)
     if os.path.exists(os.path.join(outpath, f"{trackname}.mp3")):
         logging.info(f"{trackname} already exists in the directory ({outpath}). Skipping download!")
         print("\t This track already exists in the directory. Skipping download!")
@@ -164,8 +164,8 @@ def make_unique_song_objects(track_list, trackname_convention):
     for track in track_list:
         song_list.append(
             Song(
-                title=re.sub(TRACKNAME_REGEX, "_", track['title']),
-                artists=re.sub(TRACKNAME_REGEX, "_", track['artists']),
+                title=re.sub(NAME_SANITIZE_REGEX, "_", track['title']),
+                artists=re.sub(NAME_SANITIZE_REGEX, "_", track['artists']),
                 album=track['album'],
                 cover=track['cover'],
                 link=f"https://open.spotify.com/track/{track['id']}"
@@ -275,7 +275,11 @@ def remove_empty_files(outpath):
 
 def download_playlist_tracks(playlist_link, outpath, create_folder, trackname_convention, max_attempts=3):
     print("\nPlaylist link identified")
-    song_list_dict, playlist_name = get_playlist_info(playlist_link, trackname_convention)
+    song_list_dict, playlist_name_old = get_playlist_info(playlist_link, trackname_convention)
+    playlist_name = re.sub(NAME_SANITIZE_REGEX, "_", playlist_name_old)
+    if (playlist_name != playlist_name_old):
+        print(f'\n"{playlist_name_old}" is not a valid folder name. Using "{playlist_name}" instead.')
+
 
 
     if create_folder == True:
