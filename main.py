@@ -45,7 +45,7 @@ def check_track_playlist(link, outpath, create_folder, trackname_convention):
         # return "track"
         download_track(link, outpath, trackname_convention)
     # elif "/playlist/" in link:
-    elif re.search(r".*spotify\.com\/playlist\/", link):
+    elif re.search(r".*spotify\.com\/(?:intl-[a-zA-Z]{2}\/)?track\/", link):
         # return "playlist"
         download_playlist_tracks(link, outpath, create_folder, trackname_convention)
     else:
