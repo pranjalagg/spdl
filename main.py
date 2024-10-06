@@ -359,9 +359,12 @@ def handle_sync_file(sync_file):
 
 def trackname_convention():
     print("How would you like to name the tracks?")
-    print("1. Title - Artist")
+    print("1. Title - Artist (default)")
     print("2. Artist - Title")
-    num = int(input("Enter the number corresponding to the naming convention: "))
+    num = input("Enter the number corresponding to the naming convention: ")
+    if num == "":
+        num = 1
+    num = int(num)
     if num != 1 and num != 2:
         print("Invalid input. Defaulting to Title - Artist")
         return "Title - Artist", 1
