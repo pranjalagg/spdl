@@ -41,7 +41,7 @@ class Song:
 def check_track_playlist(link, outpath, create_folder, trackname_convention):
     resolve_path(outpath)
     # if "/track/" in link:
-    if re.search(r".*spotify\.com\/track\/", link):
+    if re.search(r".*spotify\.com\/(?:intl-[a-zA-Z]{2}\/)?track\/", link):
         # return "track"
         download_track(link, outpath, trackname_convention)
     # elif "/playlist/" in link:
