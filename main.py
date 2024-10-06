@@ -45,7 +45,7 @@ def check_track_playlist(link, outpath, create_folder, trackname_convention):
         # return "track"
         download_track(link, outpath, trackname_convention)
     # elif "/playlist/" in link:
-    elif re.search(r".*spotify\.com\/(?:intl-[a-zA-Z]{2}\/)?track\/", link):
+    elif re.search(r".*spotify\.com\/playlist\/", link):
         # return "playlist"
         download_playlist_tracks(link, outpath, create_folder, trackname_convention)
     else:
@@ -166,8 +166,8 @@ def make_unique_song_objects(track_list, trackname_convention):
             Song(
                 title=re.sub(NAME_SANITIZE_REGEX, "_", track['title']),
                 artists=re.sub(NAME_SANITIZE_REGEX, "_", track['artists']),
-                album=track['album'],
-                cover=track['cover'],
+                album=track.get('album'),
+                cover=track.get('cover', 'default_cover.png'),
                 link=f"https://open.spotify.com/track/{track['id']}"
             )
         )
@@ -280,8 +280,6 @@ def download_playlist_tracks(playlist_link, outpath, create_folder, trackname_co
     if (playlist_name != playlist_name_old):
         print(f'\n"{playlist_name_old}" is not a valid folder name. Using "{playlist_name}" instead.')
 
-
-
     if create_folder == True:
         outpath = os.path.join(outpath, playlist_name)
 
@@ -304,9 +302,14 @@ def download_playlist_tracks(playlist_link, outpath, create_folder, trackname_co
                 resolve_path(outpath, playlist_folder=True)
                 save_status = save_audio(trackname, resp['link'], outpath)
                 if save_status:
-                    cover_art = requests.get(song_list_dict[trackname].cover).content
-                    attach_cover_art(trackname, cover_art, outpath)
-                    break
+                    cover_url = song_list_dict[trackname].cover
+                    if cover_url.startswith("http"):
+                        cover_art = requests.get(cover_url).content
+                        attach_cover_art(trackname, cover_art, outpath)
+                    else:
+                        logging.error(f"Error downloading cover art for {trackname} --> {cover_url} (Invalid URL)")
+                        print(f"\tSkipping cover art for {trackname} --> {cover_url} (Invalid URL)")
+                    break # This break is here because we want to break out of the loop of the track was downloaded successfully
             except Exception as e:
                 logging.error(f"Attempt {attempt+1} - {playlist_name}: {trackname} --> {e}")
                 print(f"\t\tAttempt {attempt+1} failed with error: ", e)
