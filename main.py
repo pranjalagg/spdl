@@ -295,6 +295,7 @@ def download_playlist_tracks(playlist_link, outpath, create_folder, trackname_co
         # trackname = track
         # trackname = re.sub(r"[<>:\"/\\|?*]", "_", trackname)
         print(f"{index}/{len(song_list_dict)}: {trackname}")
+        # download_track(song_list_dict[trackname].link, outpath, trackname_convention)
         for attempt in range(max_attempts):
             try:
                 # raise Exception("Testing")
@@ -303,12 +304,10 @@ def download_playlist_tracks(playlist_link, outpath, create_folder, trackname_co
                 save_status = save_audio(trackname, resp['link'], outpath)
                 if save_status:
                     cover_url = song_list_dict[trackname].cover
-                    if cover_url.startswith("http"):
-                        cover_art = requests.get(cover_url).content
-                        attach_cover_art(trackname, cover_art, outpath)
-                    else:
-                        logging.error(f"Error downloading cover art for {trackname} --> {cover_url} (Invalid URL)")
-                        print(f"\tSkipping cover art for {trackname} --> {cover_url} (Invalid URL)")
+                    if not cover_url.startswith("http"):
+                        cover_url = resp['metadata']['cover']
+                    cover_art = requests.get(cover_url).content
+                    attach_cover_art(trackname, cover_art, outpath)
                     break # This break is here because we want to break out of the loop of the track was downloaded successfully
             except Exception as e:
                 logging.error(f"Attempt {attempt+1} - {playlist_name}: {trackname} --> {e}")
