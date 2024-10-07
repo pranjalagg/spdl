@@ -282,6 +282,7 @@ def download_playlist_tracks(playlist_link, outpath, create_folder, trackname_co
 
     if create_folder == True:
         outpath = os.path.join(outpath, playlist_name)
+    resolve_path(outpath, playlist_folder=True)
 
     if os.path.exists(outpath):
         song_list_dict = check_existing_tracks(song_list_dict, outpath)
@@ -300,7 +301,6 @@ def download_playlist_tracks(playlist_link, outpath, create_folder, trackname_co
             try:
                 # raise Exception("Testing")
                 resp = get_track_info(song_list_dict[trackname].link)
-                resolve_path(outpath, playlist_folder=True)
                 save_status = save_audio(trackname, resp['link'], outpath)
                 if save_status:
                     cover_url = song_list_dict[trackname].cover
