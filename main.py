@@ -282,6 +282,7 @@ def download_playlist_tracks(playlist_link, outpath, create_folder, trackname_co
 
     if create_folder == True:
         outpath = os.path.join(outpath, playlist_name)
+    resolve_path(outpath, playlist_folder=True)
 
     if os.path.exists(outpath):
         song_list_dict = check_existing_tracks(song_list_dict, outpath)
@@ -295,20 +296,18 @@ def download_playlist_tracks(playlist_link, outpath, create_folder, trackname_co
         # trackname = track
         # trackname = re.sub(r"[<>:\"/\\|?*]", "_", trackname)
         print(f"{index}/{len(song_list_dict)}: {trackname}")
+        # download_track(song_list_dict[trackname].link, outpath, trackname_convention)
         for attempt in range(max_attempts):
             try:
                 # raise Exception("Testing")
                 resp = get_track_info(song_list_dict[trackname].link)
-                resolve_path(outpath, playlist_folder=True)
                 save_status = save_audio(trackname, resp['link'], outpath)
                 if save_status:
                     cover_url = song_list_dict[trackname].cover
-                    if cover_url.startswith("http"):
-                        cover_art = requests.get(cover_url).content
-                        attach_cover_art(trackname, cover_art, outpath)
-                    else:
-                        logging.error(f"Error downloading cover art for {trackname} --> {cover_url} (Invalid URL)")
-                        print(f"\tSkipping cover art for {trackname} --> {cover_url} (Invalid URL)")
+                    if not cover_url.startswith("http"):
+                        cover_url = resp['metadata']['cover']
+                    cover_art = requests.get(cover_url).content
+                    attach_cover_art(trackname, cover_art, outpath)
                     break # This break is here because we want to break out of the loop of the track was downloaded successfully
             except Exception as e:
                 logging.error(f"Attempt {attempt+1} - {playlist_name}: {trackname} --> {e}")
@@ -413,6 +412,10 @@ def main():
     # https://open.spotify.com/track/0b4a1iklB8w8gsE38nzyEx?si=d5986255e2464129
 
 if __name__ == "__main__":
-    logging.info("-" * 10 + "Program started" + "-" * 10)
-    main()
-    logging.info("-" * 10 + "Program ended" + "-" * 10)
+    try:
+        logging.info("-" * 10 + "Program started" + "-" * 10)
+        main()
+        logging.info("-" * 10 + "Program ended" + "-" * 10)
+    except KeyboardInterrupt:
+        print("\n------ Exiting program ------")
+        logging.info("Program exited by user")
