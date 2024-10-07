@@ -412,6 +412,10 @@ def main():
     # https://open.spotify.com/track/0b4a1iklB8w8gsE38nzyEx?si=d5986255e2464129
 
 if __name__ == "__main__":
-    logging.info("-" * 10 + "Program started" + "-" * 10)
-    main()
-    logging.info("-" * 10 + "Program ended" + "-" * 10)
+    try:
+        logging.info("-" * 10 + "Program started" + "-" * 10)
+        main()
+        logging.info("-" * 10 + "Program ended" + "-" * 10)
+    except KeyboardInterrupt:
+        print("\n------ Exiting program ------")
+        logging.info("Program exited by user")
