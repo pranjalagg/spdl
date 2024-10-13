@@ -3,7 +3,7 @@
 
 ## Description
 
-This project is a tool to allow users to effortlessy download tracks and playlists fetched from Spotify, complete with metadata and album art.
+This project is a tool to allow users to effortlessly download tracks and playlists fetched from Spotify, complete with metadata and album art.
 
 > [!IMPORTANT]
 >
@@ -33,7 +33,7 @@ Example:
 python main.py -link "https://open.spotify.com/track/6UVEJw6Ikma86JNK55KPkc?si=78dd2cdb137c4214" -outpath "F:/Songs/"
 ```
 
-_Note 1: You can paste more than one link one after the other seperated by space to download mutiple tracks at once_
+_Note 1: You can paste more than one link one after the other separated by space to download multiple tracks at once_
 _Note 2: For playlists, by default the program saves the tracks in a folder with the name of the playlist_
 
 ## Different Use Cases
