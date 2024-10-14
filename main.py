@@ -2,17 +2,12 @@ import argparse
 import os
 import requests
 import re
-# import eyed3
 import logging
 import json
 from dataclasses import dataclass
 from mutagen.mp3 import MP3
 from mutagen.id3 import ID3, APIC, error
-# from eyed3.id3.frames import ImageFrame
-# Suppress warnings
-# eyed3.log.setLevel("ERROR")
 logging.basicConfig(filename="spdl.log", filemode="a", level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', encoding="utf-8")
-# logging.basicConfig(filename='app.log', level=logging.INFO)
 CUSTOM_HEADER = {
     'Host': 'api.spotifydown.com',
     'Referer': 'https://spotifydown.com/',
@@ -42,43 +37,20 @@ def check_track_playlist(link, outpath, create_folder, trackname_convention):
     resolve_path(outpath)
     # if "/track/" in link:
     if re.search(r".*spotify\.com\/(?:intl-[a-zA-Z]{2}\/)?track\/", link):
-        # return "track"
         download_track(link, outpath, trackname_convention)
     # elif "/playlist/" in link:
     elif re.search(r".*spotify\.com\/playlist\/", link):
-        # return "playlist"
         download_playlist_tracks(link, outpath, create_folder, trackname_convention)
     else:
         logging.error(f"{link} is not a valid Spotify track or playlist link")
-        # return None
         print(f"\n{link} is not a valid Spotify track or playlist link")
 
 def  get_track_info(link):
     track_id = link.split("/")[-1].split("?")[0]
     response = requests.get(f"https://api.spotifydown.com/download/{track_id}", headers=CUSTOM_HEADER)
     response = response.json()
-    # print(response['success'])
-    # print(f"Song: {response['metadata']['title']}, Artist: {response['metadata']['artists']}, Album: {response['metadata']['album']}")
-    # print(response['link'])
 
     return response
-# def attach_cover_art(trackname, cover_art, outpath):
-#     # print(outpath)
-#     trackname = re.sub(NAME_SANITIZE_REGEX, "_", trackname)
-#     audio_file = eyed3.load(os.path.join(outpath, f"{trackname}.mp3"))
-
-#     # https://stackoverflow.com/questions/38510694/how-to-add-album-art-to-mp3-file-using-python-3
-#     try:
-#         # raise Exception("Testing")
-#         if (audio_file.tag is None):
-#             audio_file.initTag()
-
-#         audio_file.tag.images.set(ImageFrame.FRONT_COVER, cover_art.content, 'image/jpeg')
-#         audio_file.tag.save()
-#     except Exception as e:
-#         logging.error(f"Error attaching cover art to {trackname} --> {e}")
-#         print(f"\tError attaching cover art --> {e}")
-#         # print(e)
 
 def attach_cover_art(trackname, cover_art, outpath):
     trackname = re.sub(NAME_SANITIZE_REGEX, "_", trackname)
@@ -125,9 +97,6 @@ def save_audio(trackname, link, outpath):
         return True
 
 def resolve_path(outpath, playlist_folder=False):
-    # if playlist_name and playlist_folder:
-    #     outpath = os.path.join(outpath, playlist_name)
-    # print("Path: ", outpath)
     if not os.path.exists(outpath):
         if not playlist_folder:
             create_folder = input("Directory specified does not exist. Do you want to create it? (y/N): ")
@@ -137,16 +106,7 @@ def resolve_path(outpath, playlist_folder=False):
             print("Exiting program")
             exit()
 
-# def set_unique(song_list):
-#     print("----------- Set ----------")
-#     unique_songs = set(song_list)
-#     duplicate_songs = [song for song in song_list if song not in unique_songs]
-#     print("Duplicate songs ", duplicate_songs)
-#     print("Unique songs ", unique_songs)
-#     return unique_songs
-
 def dict_unique(song_list, trackname_convention):
-    # print("----------- Dict ----------")
     unique_songs = {}
     duplicate_songs = []
     for song in song_list:
@@ -207,23 +167,18 @@ def get_playlist_info(link, trackname_convention):
         next_offset = response['nextOffset']
 
     song_list_dict = make_unique_song_objects(track_list, trackname_convention)
-    # print(track_list)
-    # exit()
     return song_list_dict, playlist_name
 
-    # return track_list, playlist_name
 
 def sync_playlist_folders(sync_file):
     with open(sync_file, "r") as file:
         data_to_sync = json.load(file)
-        # print(data_to_sync)
         set_trackname_convention = 1
         for data in data_to_sync:
             if data.get("convention_code"):
                 set_trackname_convention = data["convention_code"]
                 continue
             check_track_playlist(data['link'], data['download_location'], data['create_folder'], set_trackname_convention)
-            # download_playlist_tracks(data['link'], data['download_location'])
 
 def download_track(track_link, outpath, trackname_convention, max_attempts=3):
     print("\nTrack link identified")
@@ -239,8 +194,6 @@ def download_track(track_link, outpath, trackname_convention, max_attempts=3):
         trackname = f"{resp['metadata']['artists']} - {resp['metadata']['title']}"
 
     print(f"\nDownloading {trackname} to ({outpath})")
-    # trackname = re.sub(r"[<>:\"/\\|?*]", "_", trackname)
-    # print(trackname)
     for attempt in range(max_attempts):
         try:
             # raise Exception("Testing")
@@ -248,7 +201,6 @@ def download_track(track_link, outpath, trackname_convention, max_attempts=3):
             # print("Save status: ", save_status)
             if save_status:
                 cover_art = requests.get(resp['metadata']['cover']).content
-                # print("------", trackname)
                 attach_cover_art(trackname, cover_art, outpath)
             break
         except Exception as e:
@@ -262,15 +214,13 @@ def check_existing_tracks(song_list_dict, outpath):
         if track.endswith(".mp3"):
             track = track.split(".mp3")[0]
             if song_list_dict.get(track):
-                # logging.info(f"{track} already exists in the directory ({outpath}). Skipping download!")
-                # print(f"\t{track} already exists in the directory. Skipping download!")
                 song_list_dict.pop(track)
     
     return song_list_dict
 
 def remove_empty_files(outpath):
     for file in os.listdir(outpath):
-        if os.path.getsize(os.path.join(outpath, file)) == 0:
+        if file.endswith('.mp3') and os.path.getsize(os.path.join(outpath, file)) == 0:
             os.remove(os.path.join(outpath, file))
 
 def download_playlist_tracks(playlist_link, outpath, create_folder, trackname_convention, max_attempts=3):
@@ -293,10 +243,7 @@ def download_playlist_tracks(playlist_link, outpath, create_folder, trackname_co
     print(f"\nDownloading {len(song_list_dict)} new track(s) from {playlist_name} to ({outpath})")
     print("-" * 40 )
     for index, trackname in enumerate(song_list_dict.keys(), 1):
-        # trackname = track
-        # trackname = re.sub(r"[<>:\"/\\|?*]", "_", trackname)
         print(f"{index}/{len(song_list_dict)}: {trackname}")
-        # download_track(song_list_dict[trackname].link, outpath, trackname_convention)
         for attempt in range(max_attempts):
             try:
                 # raise Exception("Testing")
@@ -379,37 +326,17 @@ def main():
     parser.add_argument("-sync", nargs="?", const="sync.json", help="Path of sync.json file to sync local playlist folders with Spotify playlists")
     parser.add_argument("-folder", nargs="?", default=True, help="Create a folder for the playlist(s)")
 
-
     args = parser.parse_args()
-    # print(args)
-
 
     if args.sync:
         handle_sync_file(os.path.abspath(args.sync))
 
-
-    # print(args.link)
-
     else:
         _, set_trackname_convention = trackname_convention()
-        # resolve_path(args.outpath)
         for link in args.link:
             check_track_playlist(link, args.outpath, create_folder=args.folder, trackname_convention=set_trackname_convention)
-            # if link_type == "track":
-            #     download_track(link, args.outpath)
-
-            # elif link_type == "playlist":
-            #     download_playlist_tracks(link, args.outpath)
-
-            # else:
-            #     print(f"{link} is not a valid Spotify track or playlist link")
     
     print("\n" + "-"*25 + " Task complete ;) " + "-"*25 + "\n")
-
-
-
-
-    # https://open.spotify.com/track/0b4a1iklB8w8gsE38nzyEx?si=d5986255e2464129
 
 if __name__ == "__main__":
     try:
