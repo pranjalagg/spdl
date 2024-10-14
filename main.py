@@ -220,7 +220,7 @@ def check_existing_tracks(song_list_dict, outpath):
 
 def remove_empty_files(outpath):
     for file in os.listdir(outpath):
-        if os.path.getsize(os.path.join(outpath, file)) == 0:
+        if file.endswith('.mp3') and os.path.getsize(os.path.join(outpath, file)) == 0:
             os.remove(os.path.join(outpath, file))
 
 def download_playlist_tracks(playlist_link, outpath, create_folder, trackname_convention, max_attempts=3):
