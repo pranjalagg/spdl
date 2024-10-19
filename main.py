@@ -268,7 +268,7 @@ def download_playlist_tracks(playlist_link, outpath, create_folder, trackname_co
 
 def handle_sync_file(sync_file):
     if (os.path.exists(sync_file)):
-        print("Syncing local playlist folders with Spotify playlists")
+        print("Syncing local album/playlist folders with Spotify")
         sync_playlist_folders(sync_file)
         print("-" * 40)
         print("Sync complete!")
@@ -285,13 +285,17 @@ def handle_sync_file(sync_file):
             )
             while True:
                 print("-" * 40)
-                playlist_link = input("Playlist link (leave empty to finish): ")
+                playlist_link = input("Album/Playlist link (leave empty to finish): ")
                 if not playlist_link:
                     break
-                create_folder = input("Create a folder for this playlist? (y/N): ")
-                download_location = input("Download location for tracks of this playlist (leave empty to default to current directory): ")
+                
+                mode='playlist'
+                if re.search(r".*spotify\.com\/album\/", playlist_link):
+                    mode='album'
+                create_folder = input(f"Create a folder for this {mode}? (y/N): ")
+                download_location = input(f"Download location for tracks of this {mode} (leave empty to default to current directory): ")
                 try:
-                    _, playlist_name = get_playlist_info(playlist_link, set_trackname_convention)
+                    _, playlist_name = get_playlist_info(playlist_link, set_trackname_convention, mode)
                 except Exception as e:
                     print(f"Probable error with the link --> {e}. Try again!")
                     continue
