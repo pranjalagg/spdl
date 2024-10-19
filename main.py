@@ -315,13 +315,14 @@ def trackname_convention():
     print("How would you like to name the tracks?")
     print("1. Title - Artist (default)")
     print("2. Artist - Title")
-    num = input("Enter the number corresponding to the naming convention: ")
-    num = num.strip()
-    if not num or num not in ["1", "2"]:
+    num = input("Enter the number corresponding to the naming convention: ").strip()
+    if num == "" or num == "1":
+        return "Title - Artist", 1
+    elif num == "2":
+        return "Artist - Title", 2
+    else:
         print("Invalid input. Defaulting to Title - Artist")
         return "Title - Artist", 1
-    return ("Artist - Title", 2) if num == "2" else ("Title - Artist", 1)
-
 def main():
     # Initialize parser
     parser = argparse.ArgumentParser(description="Program to download tracks from Spotify via CLI")
