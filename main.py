@@ -41,6 +41,9 @@ def check_track_playlist(link, outpath, create_folder, trackname_convention):
     # elif "/playlist/" in link:
     elif re.search(r".*spotify\.com\/playlist\/", link):
         download_playlist_tracks(link, outpath, create_folder, trackname_convention)
+    # elif "/album/" in link:
+    elif re.search(r".*spotify\.com\/album\/", link):
+        download_playlist_tracks(link, outpath, create_folder, trackname_convention, mode='album')
     else:
         logging.error(f"{link} is not a valid Spotify track or playlist link")
         print(f"\n{link} is not a valid Spotify track or playlist link")
@@ -119,14 +122,14 @@ def dict_unique(song_list, trackname_convention):
             unique_songs.setdefault(trackname, song)
     return unique_songs, duplicate_songs
 
-def make_unique_song_objects(track_list, trackname_convention):
+def make_unique_song_objects(track_list, trackname_convention, album_name, mode):
     song_list = []
     for track in track_list:
         song_list.append(
             Song(
                 title=re.sub(NAME_SANITIZE_REGEX, "_", track['title']),
                 artists=re.sub(NAME_SANITIZE_REGEX, "_", track['artists']),
-                album=track.get('album'),
+                album = album_name if mode == 'album' else track.get('album'),
                 cover=track.get('cover', 'default_cover.png'),
                 link=f"https://open.spotify.com/track/{track['id']}"
             )
@@ -145,28 +148,28 @@ def make_unique_song_objects(track_list, trackname_convention):
     
     return unique_songs
 
-def get_playlist_info(link, trackname_convention):
+def get_playlist_info(link, trackname_convention, mode):
     playlist_id = link.split("/")[-1].split("?")[0]
-    response = requests.get(f"https://api.spotifydown.com/metadata/playlist/{playlist_id}", headers=CUSTOM_HEADER)
+    response = requests.get(f"https://api.spotifydown.com/metadata/{mode}/{playlist_id}", headers=CUSTOM_HEADER)
     response = response.json()
     playlist_name = response['title']
     if response['success']:
         print("-" * 40)
         print(f"Name: {playlist_name} by {response['artists']}")
     
-    print("Getting songs from playlist (this might take a while ...)")
+    print(f"Getting songs from {mode} (this might take a while ...)")
     track_list = []
-    response = requests.get(f"https://api.spotifydown.com/tracklist/playlist/{playlist_id}", headers=CUSTOM_HEADER)
+    response = requests.get(f"https://api.spotifydown.com/tracklist/{mode}/{playlist_id}", headers=CUSTOM_HEADER)
     response = response.json()
     track_list.extend(response['trackList'])
     next_offset = response['nextOffset']
     while next_offset:
-        response = requests.get(f"https://api.spotifydown.com/tracklist/playlist/{playlist_id}?offset={next_offset}", headers=CUSTOM_HEADER)
+        response = requests.get(f"https://api.spotifydown.com/tracklist/{mode}/{playlist_id}?offset={next_offset}", headers=CUSTOM_HEADER)
         response = response.json()
         track_list.extend(response['trackList'])
         next_offset = response['nextOffset']
 
-    song_list_dict = make_unique_song_objects(track_list, trackname_convention)
+    song_list_dict = make_unique_song_objects(track_list, trackname_convention, playlist_name, mode)
     return song_list_dict, playlist_name
 
 
@@ -223,9 +226,10 @@ def remove_empty_files(outpath):
         if file.endswith('.mp3') and os.path.getsize(os.path.join(outpath, file)) == 0:
             os.remove(os.path.join(outpath, file))
 
-def download_playlist_tracks(playlist_link, outpath, create_folder, trackname_convention, max_attempts=3):
-    print("\nPlaylist link identified")
-    song_list_dict, playlist_name_old = get_playlist_info(playlist_link, trackname_convention)
+def download_playlist_tracks(playlist_link, outpath, create_folder, trackname_convention, max_attempts=3, mode='playlist'):
+    # print(f"\n{mode[0].upper()}{mode[1:]} link identified")
+    print(f"\n{mode.capitalize()} link identified")
+    song_list_dict, playlist_name_old = get_playlist_info(playlist_link, trackname_convention, mode)
     playlist_name = re.sub(NAME_SANITIZE_REGEX, "_", playlist_name_old)
     if (playlist_name != playlist_name_old):
         print(f'\n"{playlist_name_old}" is not a valid folder name. Using "{playlist_name}" instead.')
@@ -264,7 +268,7 @@ def download_playlist_tracks(playlist_link, outpath, create_folder, trackname_co
 
 def handle_sync_file(sync_file):
     if (os.path.exists(sync_file)):
-        print("Syncing local playlist folders with Spotify playlists")
+        print("Syncing local album/playlist folders with Spotify")
         sync_playlist_folders(sync_file)
         print("-" * 40)
         print("Sync complete!")
@@ -281,13 +285,17 @@ def handle_sync_file(sync_file):
             )
             while True:
                 print("-" * 40)
-                playlist_link = input("Playlist link (leave empty to finish): ")
+                playlist_link = input("Album/Playlist link (leave empty to finish): ")
                 if not playlist_link:
                     break
-                create_folder = input("Create a folder for this playlist? (y/N): ")
-                download_location = input("Download location for tracks of this playlist (leave empty to default to current directory): ")
+                
+                mode='playlist'
+                if re.search(r".*spotify\.com\/album\/", playlist_link):
+                    mode='album'
+                create_folder = input(f"Create a folder for this {mode}? (y/N): ")
+                download_location = input(f"Download location for tracks of this {mode} (leave empty to default to current directory): ")
                 try:
-                    _, playlist_name = get_playlist_info(playlist_link, set_trackname_convention)
+                    _, playlist_name = get_playlist_info(playlist_link, set_trackname_convention, mode)
                 except Exception as e:
                     print(f"Probable error with the link --> {e}. Try again!")
                     continue
@@ -311,13 +319,14 @@ def trackname_convention():
     print("How would you like to name the tracks?")
     print("1. Title - Artist (default)")
     print("2. Artist - Title")
-    num = input("Enter the number corresponding to the naming convention: ")
-    num = num.strip()
-    if not num or num not in ["1", "2"]:
+    num = input("Enter the number corresponding to the naming convention: ").strip()
+    if num == "" or num == "1":
+        return "Title - Artist", 1
+    elif num == "2":
+        return "Artist - Title", 2
+    else:
         print("Invalid input. Defaulting to Title - Artist")
         return "Title - Artist", 1
-    return ("Artist - Title", 2) if num == "2" else ("Title - Artist", 1)
-
 def main():
     # Initialize parser
     parser = argparse.ArgumentParser(description="Program to download tracks from Spotify via CLI")
