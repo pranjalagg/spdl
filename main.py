@@ -286,7 +286,11 @@ def handle_sync_file(sync_file):
                     break
                 create_folder = input("Create a folder for this playlist? (y/N): ")
                 download_location = input("Download location for tracks of this playlist (leave empty to default to current directory): ")
-                _, playlist_name = get_playlist_info(playlist_link, set_trackname_convention)
+                try:
+                    _, playlist_name = get_playlist_info(playlist_link, set_trackname_convention)
+                except Exception as e:
+                    print(f"Probable error with the link --> {e}. Try again!")
+                    continue
                 data_for_sync_file.append(
                     {
                         "name": playlist_name,
@@ -308,13 +312,11 @@ def trackname_convention():
     print("1. Title - Artist (default)")
     print("2. Artist - Title")
     num = input("Enter the number corresponding to the naming convention: ")
-    if num == "":
-        num = 1
-    num = int(num)
-    if num != 1 and num != 2:
+    num = num.strip()
+    if not num or num not in ["1", "2"]:
         print("Invalid input. Defaulting to Title - Artist")
         return "Title - Artist", 1
-    return "Artist - Title", num
+    return ("Artist - Title", 2) if num == "2" else ("Title - Artist", 1)
 
 def main():
     # Initialize parser
