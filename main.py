@@ -6,7 +6,7 @@ import logging
 import json
 from dataclasses import dataclass
 from mutagen.mp3 import MP3
-from mutagen.id3 import ID3, APIC, error
+from mutagen.id3 import ID3, APIC, error, TRCK
 logging.basicConfig(filename="spdl.log", filemode="a", level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', encoding="utf-8")
 CUSTOM_HEADER = {
     'Host': 'api.spotifydown.com',
@@ -55,7 +55,7 @@ def  get_track_info(link):
 
     return response
 
-def attach_cover_art(trackname, cover_art, outpath):
+def attach_cover_art(trackname, cover_art, outpath, track_number):
     trackname = re.sub(NAME_SANITIZE_REGEX, "_", trackname)
     filepath = os.path.join(outpath, f"{trackname}.mp3")
     try:
@@ -82,6 +82,9 @@ def attach_cover_art(trackname, cover_art, outpath):
             desc=u'Cover',
             data=cover_art)
         )
+    # Add track number
+    audio.tags.add(TRCK(encoding=3, text=str(track_number)))
+    
     audio.save(filepath, v2_version=3, v1=2)
 
 def save_audio(trackname, link, outpath):
@@ -258,7 +261,7 @@ def download_playlist_tracks(playlist_link, outpath, create_folder, trackname_co
                     if not cover_url.startswith("http"):
                         cover_url = resp['metadata']['cover']
                     cover_art = requests.get(cover_url).content
-                    attach_cover_art(trackname, cover_art, outpath)
+                    attach_cover_art(trackname, cover_art, outpath, index)
                     break # This break is here because we want to break out of the loop of the track was downloaded successfully
             except Exception as e:
                 logging.error(f"Attempt {attempt+1} - {playlist_name}: {trackname} --> {e}")
