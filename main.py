@@ -23,6 +23,7 @@ class Song:
     album: str
     cover: str
     link: str
+    track_number: int
 
     # def __eq__(self, other):
     #     if not isinstance(other, Song):
@@ -55,7 +56,7 @@ def  get_track_info(link):
 
     return response
 
-def attach_cover_art(trackname, cover_art, outpath, is_high_quality):
+def attach_cover_art(trackname, cover_art, outpath, is_high_quality, track_number=0):
     trackname = re.sub(NAME_SANITIZE_REGEX, "_", trackname)
     filepath = os.path.join(outpath, f"{trackname}.mp3") if is_high_quality else os.path.join(outpath, "low_quality", f"{trackname}.mp3")
     try:
@@ -83,7 +84,9 @@ def attach_cover_art(trackname, cover_art, outpath, is_high_quality):
             data=cover_art)
         )
     # Add track number
-    # audio.tags.add(TRCK(encoding=3, text=str(track_number)))
+    # print(f"\t Adding track number: {track_number}")
+    if track_number > 0:
+        audio.tags.add(TRCK(encoding=3, text=str(track_number)))
     
     audio.save(filepath, v2_version=3, v1=2)
 
@@ -151,14 +154,15 @@ def dict_unique(song_list, trackname_convention):
 
 def make_unique_song_objects(track_list, trackname_convention, album_name, mode):
     song_list = []
-    for track in track_list:
+    for i, track in enumerate(track_list, 1):
         song_list.append(
             Song(
                 title=re.sub(NAME_SANITIZE_REGEX, "_", track['title']),
                 artists=re.sub(NAME_SANITIZE_REGEX, "_", track['artists']),
                 album = album_name if mode == 'album' else track.get('album'),
                 cover=track.get('cover', 'default_cover.png'),
-                link=f"https://open.spotify.com/track/{track['id']}"
+                link=f"https://open.spotify.com/track/{track['id']}",
+                track_number=i
             )
         )
     # unique_songs = set_unique(song_list)
@@ -293,7 +297,7 @@ def download_playlist_tracks(playlist_link, outpath, create_folder, trackname_co
                     if not cover_url.startswith("http"):
                         cover_url = resp['metadata']['cover']
                     cover_art = requests.get(cover_url).content
-                    attach_cover_art(trackname, cover_art, outpath, is_high_quality)
+                    attach_cover_art(trackname, cover_art, outpath, is_high_quality, song_list_dict[trackname].track_number)
                     break # This break is here because we want to break out of the loop of the track was downloaded successfully
             except Exception as e:
                 logging.error(f"Attempt {attempt+1}/{max_attempts} - {playlist_name}: {trackname} --> {e}")
