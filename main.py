@@ -247,18 +247,19 @@ def check_existing_tracks(song_list_dict, outpath):
     
     return song_list_dict
 
+def cleanup(outpath):
+    for file in os.listdir(outpath):
+        if file.endswith(".mp3") and os.path.getsize(os.path.join(outpath, file)) == 0:
+            os.remove(os.path.join(outpath, file))
+
 def remove_empty_files(outpath):
     # Check main directory
-    for file in os.listdir(outpath):
-        if file.endswith('.mp3') and os.path.getsize(os.path.join(outpath, file)) == 0:
-            os.remove(os.path.join(outpath, file))
+    cleanup(outpath)
     
     # Check low_quality directory if it exists
     low_quality_path = os.path.join(outpath, "low_quality")
     if os.path.exists(low_quality_path):
-        for file in os.listdir(low_quality_path):
-            if file.endswith('.mp3') and os.path.getsize(os.path.join(low_quality_path, file)) == 0:
-                os.remove(os.path.join(low_quality_path, file))
+        cleanup(low_quality_path)
 
 def download_playlist_tracks(playlist_link, outpath, create_folder, trackname_convention, max_attempts=3, mode='playlist'):
     # print(f"\n{mode[0].upper()}{mode[1:]} link identified")
