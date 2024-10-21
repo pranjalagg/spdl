@@ -55,7 +55,7 @@ def  get_track_info(link):
 
     return response
 
-def attach_cover_art(trackname, cover_art, outpath, track_number, is_high_quality):
+def attach_cover_art(trackname, cover_art, outpath, is_high_quality):
     trackname = re.sub(NAME_SANITIZE_REGEX, "_", trackname)
     filepath = os.path.join(outpath, f"{trackname}.mp3") if is_high_quality else os.path.join(outpath, "low_quality", f"{trackname}.mp3")
     try:
@@ -83,7 +83,7 @@ def attach_cover_art(trackname, cover_art, outpath, track_number, is_high_qualit
             data=cover_art)
         )
     # Add track number
-    audio.tags.add(TRCK(encoding=3, text=str(track_number)))
+    # audio.tags.add(TRCK(encoding=3, text=str(track_number)))
     
     audio.save(filepath, v2_version=3, v1=2)
 
@@ -230,11 +230,11 @@ def download_track(track_link, outpath, trackname_convention, max_attempts=3):
             is_high_quality = save_audio(trackname, resp['link'], outpath)
             if is_high_quality is not None:  # Check if download was successful
                 cover_art = requests.get(resp['metadata']['cover']).content
-                attach_cover_art(trackname, cover_art, outpath, track_number=1, is_high_quality=is_high_quality)
+                attach_cover_art(trackname, cover_art, outpath, is_high_quality)
             break
         except Exception as e:
-            logging.error(f"Attempt {attempt+1} - {trackname} --> {e}")
-            print(f"\tAttempt {attempt+1} failed with error: ", e)
+            logging.error(f"Attempt {attempt+1}/{max_attempts} - {trackname} --> {e}")
+            print(f"\tAttempt {attempt+1}/{max_attempts} failed with error: ", e)
     remove_empty_files(outpath)
 
 def check_existing_tracks(song_list_dict, outpath):
@@ -293,11 +293,11 @@ def download_playlist_tracks(playlist_link, outpath, create_folder, trackname_co
                     if not cover_url.startswith("http"):
                         cover_url = resp['metadata']['cover']
                     cover_art = requests.get(cover_url).content
-                    attach_cover_art(trackname, cover_art, outpath, index, is_high_quality)
+                    attach_cover_art(trackname, cover_art, outpath, is_high_quality)
                     break # This break is here because we want to break out of the loop of the track was downloaded successfully
             except Exception as e:
-                logging.error(f"Attempt {attempt+1} - {playlist_name}: {trackname} --> {e}")
-                print(f"\t\tAttempt {attempt+1} failed with error: ", e)
+                logging.error(f"Attempt {attempt+1}/{max_attempts} - {playlist_name}: {trackname} --> {e}")
+                print(f"\t\tAttempt {attempt+1}/{max_attempts} failed with error: ", e)
             
     remove_empty_files(outpath)
 
