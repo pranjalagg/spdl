@@ -23,6 +23,7 @@ class Song:
     album: str
     cover: str
     link: str
+    track_number: int
 
     # def __eq__(self, other):
     #     if not isinstance(other, Song):
@@ -55,9 +56,9 @@ def  get_track_info(link):
 
     return response
 
-def attach_cover_art(trackname, cover_art, outpath, track_number):
+def attach_cover_art(trackname, cover_art, outpath, is_high_quality, track_number=0):
     trackname = re.sub(NAME_SANITIZE_REGEX, "_", trackname)
-    filepath = os.path.join(outpath, f"{trackname}.mp3")
+    filepath = os.path.join(outpath, f"{trackname}.mp3") if is_high_quality else os.path.join(outpath, "low_quality", f"{trackname}.mp3")
     try:
         # raise error("Testing")
         audio = MP3(filepath, ID3=ID3)
@@ -83,24 +84,50 @@ def attach_cover_art(trackname, cover_art, outpath, track_number):
             data=cover_art)
         )
     # Add track number
-    audio.tags.add(TRCK(encoding=3, text=str(track_number)))
+    # print(f"\t Adding track number: {track_number}")
+    if track_number > 0:
+        audio.tags.add(TRCK(encoding=3, text=str(track_number)))
     
     audio.save(filepath, v2_version=3, v1=2)
 
 def save_audio(trackname, link, outpath):
     trackname = re.sub(NAME_SANITIZE_REGEX, "_", trackname)
-    if os.path.exists(os.path.join(outpath, f"{trackname}.mp3")):
+    low_quality_path = os.path.join(outpath, "low_quality")
+    
+    if os.path.exists(os.path.join(outpath, f"{trackname}.mp3")) or \
+       os.path.exists(os.path.join(low_quality_path, f"{trackname}.mp3")):
         logging.info(f"{trackname} already exists in the directory ({outpath}). Skipping download!")
         print("\t This track already exists in the directory. Skipping download!")
-        return False
+        return None
     
-    # filename = re.sub(r"[<>:\"/\\|?*]", "_", f"{trackname}.mp3")
     audio_response = requests.get(link)
 
     if audio_response.status_code == 200:
-        with open(os.path.join(outpath, f"{trackname}.mp3"), "wb") as file:
+        temp_file = os.path.join(outpath, f"temp_{trackname}.mp3")
+        with open(temp_file, "wb") as file:
             file.write(audio_response.content)
-        return True
+        
+        # Check bitrate
+        audio = MP3(temp_file)
+        bitrate = audio.info.bitrate / 1000  # Convert to kbps
+        
+        if bitrate >= 320:
+            final_path = os.path.join(outpath, f"{trackname}.mp3")
+            is_high_quality = True
+        else:
+            if not os.path.exists(low_quality_path):
+                os.makedirs(low_quality_path)
+            final_path = os.path.join(low_quality_path, f"{trackname}.mp3")
+            is_high_quality = False
+        
+        os.rename(temp_file, final_path)
+        # print(f"\t Saved {trackname} ({bitrate:.0f}kbps) to {'current' if is_high_quality else 'low_quality'} folder")
+        return is_high_quality
+
+    else:
+        logging.error(f"Failed to download {trackname}. Status code: {audio_response.status_code}")
+        print(f"\t Failed to download {trackname}. Status code: {audio_response.status_code}")
+        return None
 
 def resolve_path(outpath, playlist_folder=False):
     if not os.path.exists(outpath):
@@ -127,14 +154,15 @@ def dict_unique(song_list, trackname_convention):
 
 def make_unique_song_objects(track_list, trackname_convention, album_name, mode):
     song_list = []
-    for track in track_list:
+    for i, track in enumerate(track_list, 1):
         song_list.append(
             Song(
                 title=re.sub(NAME_SANITIZE_REGEX, "_", track['title']),
                 artists=re.sub(NAME_SANITIZE_REGEX, "_", track['artists']),
                 album = album_name if mode == 'album' else track.get('album'),
                 cover=track.get('cover', 'default_cover.png'),
-                link=f"https://open.spotify.com/track/{track['id']}"
+                link=f"https://open.spotify.com/track/{track['id']}",
+                track_number=i
             )
         )
     # unique_songs = set_unique(song_list)
@@ -203,15 +231,14 @@ def download_track(track_link, outpath, trackname_convention, max_attempts=3):
     for attempt in range(max_attempts):
         try:
             # raise Exception("Testing")
-            save_status = save_audio(trackname, resp['link'], outpath)
-            # print("Save status: ", save_status)
-            if save_status:
+            is_high_quality = save_audio(trackname, resp['link'], outpath)
+            if is_high_quality is not None:  # Check if download was successful
                 cover_art = requests.get(resp['metadata']['cover']).content
-                attach_cover_art(trackname, cover_art, outpath)
+                attach_cover_art(trackname, cover_art, outpath, is_high_quality)
             break
         except Exception as e:
-            logging.error(f"Attempt {attempt+1} - {trackname} --> {e}")
-            print(f"\tAttempt {attempt+1} failed with error: ", e)
+            logging.error(f"Attempt {attempt+1}/{max_attempts} - {trackname} --> {e}")
+            print(f"\tAttempt {attempt+1}/{max_attempts} failed with error: ", e)
     remove_empty_files(outpath)
 
 def check_existing_tracks(song_list_dict, outpath):
@@ -224,10 +251,19 @@ def check_existing_tracks(song_list_dict, outpath):
     
     return song_list_dict
 
-def remove_empty_files(outpath):
+def cleanup(outpath):
     for file in os.listdir(outpath):
-        if file.endswith('.mp3') and os.path.getsize(os.path.join(outpath, file)) == 0:
+        if file.endswith(".mp3") and os.path.getsize(os.path.join(outpath, file)) == 0:
             os.remove(os.path.join(outpath, file))
+
+def remove_empty_files(outpath):
+    # Check main directory
+    cleanup(outpath)
+    
+    # Check low_quality directory if it exists
+    low_quality_path = os.path.join(outpath, "low_quality")
+    if os.path.exists(low_quality_path):
+        cleanup(low_quality_path)
 
 def download_playlist_tracks(playlist_link, outpath, create_folder, trackname_convention, max_attempts=3, mode='playlist'):
     # print(f"\n{mode[0].upper()}{mode[1:]} link identified")
@@ -255,17 +291,17 @@ def download_playlist_tracks(playlist_link, outpath, create_folder, trackname_co
             try:
                 # raise Exception("Testing")
                 resp = get_track_info(song_list_dict[trackname].link)
-                save_status = save_audio(trackname, resp['link'], outpath)
-                if save_status:
+                is_high_quality = save_audio(trackname, resp['link'], outpath)
+                if is_high_quality is not None:  # Check if download was successful
                     cover_url = song_list_dict[trackname].cover
                     if not cover_url.startswith("http"):
                         cover_url = resp['metadata']['cover']
                     cover_art = requests.get(cover_url).content
-                    attach_cover_art(trackname, cover_art, outpath, index)
+                    attach_cover_art(trackname, cover_art, outpath, is_high_quality, song_list_dict[trackname].track_number)
                     break # This break is here because we want to break out of the loop of the track was downloaded successfully
             except Exception as e:
-                logging.error(f"Attempt {attempt+1} - {playlist_name}: {trackname} --> {e}")
-                print(f"\t\tAttempt {attempt+1} failed with error: ", e)
+                logging.error(f"Attempt {attempt+1}/{max_attempts} - {playlist_name}: {trackname} --> {e}")
+                print(f"\t\tAttempt {attempt+1}/{max_attempts} failed with error: ", e)
             
     remove_empty_files(outpath)
 
