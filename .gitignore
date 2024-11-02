@@ -1,3 +1,7 @@
+__pycache__/
+venv
+var/
+
 *.mp3
 *.log
 sync*.json
