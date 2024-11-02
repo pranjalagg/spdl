@@ -4,10 +4,29 @@ import requests
 import re
 import logging
 import json
+import sys
 from dataclasses import dataclass
 from mutagen.mp3 import MP3
 from mutagen.id3 import ID3, APIC, error, TRCK
-logging.basicConfig(filename="spdl.log", filemode="a", level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', encoding="utf-8")
+
+if sys.version_info >= (3, 9):
+    logging.basicConfig(
+        filename="spdl.log",
+        filemode="a",
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        encoding="utf-8"
+    )
+else:
+    # Workaround for Python versions earlier than 3.9
+    file_handler = logging.FileHandler("spdl.log", mode="a", encoding="utf-8")
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    file_handler.setFormatter(formatter)
+
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    logger.addHandler(file_handler)
+
 CUSTOM_HEADER = {
     'Host': 'api.spotifydown.com',
     'Referer': 'https://spotifydown.com/',
