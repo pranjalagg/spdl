@@ -1,25 +1,7 @@
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, mock_open, call
 import requests
-from ..main import (
-    Song,
-    check_track_playlist,
-    get_track_info,
-    attach_cover_art,
-    save_audio,
-    resolve_path,
-    make_unique_song_objects,
-    dict_unique,
-    get_playlist_info,
-    sync_playlist_folders,
-    download_track,
-    check_existing_tracks,
-    cleanup, remove_empty_files,
-    download_playlist_tracks,
-    handle_sync_file,
-    trackname_convention,
-    NAME_SANITIZE_REGEX
-)
+from ..main import *
 
 @pytest.fixture
 def sample_track():
@@ -45,15 +27,50 @@ def sample_track_response():
         "link": "https://example.com/sample_track.mp3"
     }
 
-def test_song_creation(sample_track):
-    assert sample_track.title == "Sample Track"
-    assert sample_track.artists == ["Sample Artist1", "Sample Artist2"]
-    assert sample_track.album == "Sample Album"
-    assert sample_track.cover == "https://example.com/sample_cover.jpg"
-    assert sample_track.link == "https://example.com/sample_track.mp3"
-    assert sample_track.track_number == 1
+@patch('main.requests.get')
+def test_get_track_info(mock_get):
+    track_info = {'title': 'Test Song', 'artists': 'Test Artist'}
+    mock_get.return_value.json.return_value = track_info
 
-def test_name_sanitize_regex():
-    dirty_name = "Test: Sample? Track* (feat. Invalid/ Characters)"
-    clean_name = NAME_SANITIZE_REGEX.sub("_", dirty_name)
-    assert clean_name == "Test_ Sample_ Track_ (feat. Invalid_ Characters)"
+    result = get_track_info("https://open.spotify.com/track/12345")
+    assert result == track_info
+    mock_get.assert_called_once_with("https://api.spotifydown.com/download/12345", headers=CUSTOM_HEADER)
+
+
+def test_dict_unique():
+    songs = [
+        Song("Song1", "Artist1", "Album1", "cover1", "link1", 1),
+        Song("Song2", "Artist2", "Album2", "cover2", "link2", 2),
+        Song("Song1", "Artist1", "Album1", "cover1", "link1", 1)  # Duplicate
+    ]
+    unique_songs, duplicates = dict_unique(songs, trackname_convention=1)
+    assert len(unique_songs) == 2
+    assert len(duplicates) == 1
+
+
+def test_make_unique_song_objects():
+    track_list = [
+        {'title': 'Song1', 'artists': 'Artist1', 'album': 'Album1', 'id': '123'},
+        {'title': 'Song2', 'artists': 'Artist2', 'album': 'Album2', 'id': '456'}
+    ]
+    unique_songs = make_unique_song_objects(track_list, 1, "Album1", mode='album')
+    assert len(unique_songs) == 2
+
+@patch("main.os.path.exists")
+@patch("main.os.mkdir")
+def test_resolve_path(mock_mkdir, mock_exists):
+    mock_exists.return_value = False
+    with patch("builtins.input", return_value="y"):
+        resolve_path("output/path")
+        mock_mkdir.assert_called_once_with("output/path")
+
+@patch("main.requests.get")
+def test_get_playlist_info(mock_get):
+    mock_get.return_value.json.side_effect = [
+        {'title': 'Test Playlist', 'artists': 'Test Artist', 'success': True},
+        {'trackList': [{'title': 'Song1', 'artists': 'Artist1', 'id': '123'}], 'nextOffset': None}
+    ]
+
+    songs, playlist_name = get_playlist_info("https://open.spotify.com/playlist/12345", 1, 'playlist')
+    assert playlist_name == "Test Playlist"
+    assert len(songs) == 1
