@@ -1,4 +1,3 @@
-
 import argparse
 import os
 import requests
@@ -226,7 +225,7 @@ def get_playlist_info(link, trackname_convention, mode):
     return song_list_dict, playlist_name
 
 
-def sync_playlist_folders(sync_file, token):
+def sync_playlist_folders(sync_file):
     with open(sync_file, "r") as file:
         data_to_sync = json.load(file)
         set_trackname_convention = 1
@@ -234,7 +233,7 @@ def sync_playlist_folders(sync_file, token):
             if data.get("convention_code"):
                 set_trackname_convention = data["convention_code"]
                 continue
-            check_track_playlist(data['link'], data['download_location'], data['create_folder'], set_trackname_convention, token=token)
+            check_track_playlist(data['link'], data['download_location'], data['create_folder'], set_trackname_convention, token=get_token())
 
 def download_track(track_link, outpath, trackname_convention, token, max_attempts=3):
     print("\nTrack link identified")
@@ -335,10 +334,10 @@ def download_playlist_tracks(playlist_link, outpath, create_folder, trackname_co
             
     remove_empty_files(outpath)
 
-def handle_sync_file(sync_file, token):
+def handle_sync_file(sync_file):
     if (os.path.exists(sync_file)):
         print("Syncing local album/playlist folders with Spotify")
-        sync_playlist_folders(sync_file, token)
+        sync_playlist_folders(sync_file)
         print("-" * 40)
         print("Sync complete!")
     else:
@@ -408,12 +407,12 @@ def main():
 
     args = parser.parse_args()
 
-    token = get_token()
 
     if args.sync:
-        handle_sync_file(os.path.abspath(args.sync), token)
+        handle_sync_file(os.path.abspath(args.sync))
 
     else:
+        token = get_token()
         _, set_trackname_convention = trackname_convention()
         for link in args.link:
             check_track_playlist(link, args.outpath, create_folder=args.folder, trackname_convention=set_trackname_convention, token=token)
