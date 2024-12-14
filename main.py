@@ -53,24 +53,24 @@ class Song:
     #     print("Hello 2")
     #     return hash((self.title, self.artists, self.album))
 
-def check_track_playlist(link, outpath, create_folder, trackname_convention):
+def check_track_playlist(link, outpath, create_folder, trackname_convention, token):
     resolve_path(outpath)
     # if "/track/" in link:
     if re.search(r".*spotify\.com\/(?:intl-[a-zA-Z]{2}\/)?track\/", link):
-        download_track(link, outpath, trackname_convention)
+        download_track(link, outpath, trackname_convention, token)
     # elif "/playlist/" in link:
     elif re.search(r".*spotify\.com\/playlist\/", link):
-        download_playlist_tracks(link, outpath, create_folder, trackname_convention)
+        download_playlist_tracks(link, outpath, create_folder, trackname_convention, token)
     # elif "/album/" in link:
     elif re.search(r".*spotify\.com\/album\/", link):
-        download_playlist_tracks(link, outpath, create_folder, trackname_convention, mode='album')
+        download_playlist_tracks(link, outpath, create_folder, trackname_convention, mode='album', token=token)
     else:
         logging.error(f"{link} is not a valid Spotify track or playlist link")
         print(f"\n{link} is not a valid Spotify track or playlist link")
 
-def  get_track_info(link):
+def  get_track_info(link, token):
     track_id = link.split("/")[-1].split("?")[0]
-    response = requests.get(f"https://api.spotifydown.com/download/{track_id}", headers=CUSTOM_HEADER)
+    response = requests.get(f"https://api.spotifydown.com/download/{track_id}?token={token}", headers=CUSTOM_HEADER)
     response = response.json()
 
     return response
@@ -165,6 +165,8 @@ def dict_unique(song_list, trackname_convention):
         trackname = f"{song.title} - {song.artists}"
         if trackname_convention == 2:
             trackname = f"{song.artists} - {song.title}"
+        if len(trackname) > 260: # Added because you can't have filenames with more that 260 chars
+            trackname = song.title[:255] + "..." # Just in case there is a song out there with a very very large title
         if (unique_songs.get(trackname)):
             duplicate_songs.append(trackname)
         else:
@@ -231,12 +233,17 @@ def sync_playlist_folders(sync_file):
             if data.get("convention_code"):
                 set_trackname_convention = data["convention_code"]
                 continue
-            check_track_playlist(data['link'], data['download_location'], data['create_folder'], set_trackname_convention)
+            check_track_playlist(data['link'], data['download_location'], data['create_folder'], set_trackname_convention, token=get_token())
 
-def download_track(track_link, outpath, trackname_convention, max_attempts=3):
+def download_track(track_link, outpath, trackname_convention, token, max_attempts=3):
     print("\nTrack link identified")
 
-    resp = get_track_info(track_link)
+    resp = get_track_info(track_link, token)
+    if resp["statusCode"] == 403:
+      print("\t Status code 403: Unauthorized access. Please provide a new token.")
+      logging.error("Token expired, request new token")
+      token = get_token(reset=True) # Resets the cache
+      resp = get_track_info(track_link, token)  # Retry with new token
     if resp['success'] == False:
         print(f"Error: {resp['message']}")
         logging.error(f"Error: {resp['message']}")
@@ -284,7 +291,7 @@ def remove_empty_files(outpath):
     if os.path.exists(low_quality_path):
         cleanup(low_quality_path)
 
-def download_playlist_tracks(playlist_link, outpath, create_folder, trackname_convention, max_attempts=3, mode='playlist'):
+def download_playlist_tracks(playlist_link, outpath, create_folder, trackname_convention, token, max_attempts=3, mode='playlist'):
     # print(f"\n{mode[0].upper()}{mode[1:]} link identified")
     print(f"\n{mode.capitalize()} link identified")
     song_list_dict, playlist_name_old = get_playlist_info(playlist_link, trackname_convention, mode)
@@ -309,7 +316,12 @@ def download_playlist_tracks(playlist_link, outpath, create_folder, trackname_co
         for attempt in range(max_attempts):
             try:
                 # raise Exception("Testing")
-                resp = get_track_info(song_list_dict[trackname].link)
+                resp = get_track_info(song_list_dict[trackname].link, token)
+                if resp["statusCode"] == 403:
+                    print("\t Status code 403: Unauthorized access. Please provide a new token.")
+                    logging.error("Token expired. Requested new token")
+                    token = get_token(reset=True) # Resets the cache
+                    resp = get_track_info(song_list_dict[trackname].link, token)  # Retry with new token
                 is_high_quality = save_audio(trackname, resp['link'], outpath)
                 if is_high_quality is not None:  # Check if download was successful
                     cover_url = song_list_dict[trackname].cover
@@ -397,15 +409,30 @@ def main():
 
     args = parser.parse_args()
 
+
     if args.sync:
         handle_sync_file(os.path.abspath(args.sync))
 
     else:
+        token = get_token()
         _, set_trackname_convention = trackname_convention()
         for link in args.link:
-            check_track_playlist(link, args.outpath, create_folder=args.folder, trackname_convention=set_trackname_convention)
+            check_track_playlist(link, args.outpath, create_folder=args.folder, trackname_convention=set_trackname_convention, token=token)
     
     print("\n" + "-"*25 + " Task complete ;) " + "-"*25 + "\n")
+
+def get_token(reset=False):
+  if os.path.exists("./.cache") and not reset:
+    with open(".cache") as f:
+      token = json.load(f).get("token")
+
+  else: 
+    token = input("Enter Token: ").strip()
+    with open(".cache", "w") as f:
+      json.dump({
+        "token": token, # Using a dict so later i might add an expires field
+      }, f)
+  return token
 
 if __name__ == "__main__":
     try:

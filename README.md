@@ -6,6 +6,12 @@
 This project is a tool to allow users to effortlessly download tracks and playlists fetched from Spotify, complete with metadata and album art.
 
 > [!IMPORTANT]
+> Due to the new updates to the api, a token is needed every once in a while. Thus everytime prompted you'll have to provide the token. Get the token using the below steps:
+> 1. Go to https://spotifydown.com/ and open the "Network" tab in the browser devtools (right click > Inspect > navigate to the Network tab or use the key combination: Ctrl + Shift + I)
+> 2. While the Network tab is open press the download button.
+> 3. Press download again. You will see some activity in the network tab.
+> 4. Filter to only show `fetch` requests (from the "Type" column) and check through them for the one request url that has the token.
+> 5. Copy only the token part ( ...?token=***03jdnoiem...*** )
 >
 > <sub>spdl is currently under development, so please expect frequent changes to the way it works.</sub>
 
