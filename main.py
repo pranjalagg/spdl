@@ -241,6 +241,7 @@ def download_track(track_link, outpath, trackname_convention, token, max_attempt
     resp = get_track_info(track_link, token)
     if resp["statusCode"] == 403:
       print("\t Status code 403: Unauthorized access. Please provide a new token.")
+      logging.error("Token expired, request new token")
       token = get_token(reset=True) # Resets the cache
       resp = get_track_info(track_link, token)  # Retry with new token
     if resp['success'] == False:
@@ -318,6 +319,7 @@ def download_playlist_tracks(playlist_link, outpath, create_folder, trackname_co
                 resp = get_track_info(song_list_dict[trackname].link, token)
                 if resp["statusCode"] == 403:
                     print("\t Status code 403: Unauthorized access. Please provide a new token.")
+                    logging.error("Token expired. Requested new token")
                     token = get_token(reset=True) # Resets the cache
                     resp = get_track_info(song_list_dict[trackname].link, token)  # Retry with new token
                 is_high_quality = save_audio(trackname, resp['link'], outpath)
