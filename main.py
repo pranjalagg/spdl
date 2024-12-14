@@ -166,7 +166,7 @@ def dict_unique(song_list, trackname_convention):
         if trackname_convention == 2:
             trackname = f"{song.artists} - {song.title}"
         if len(trackname) > 260: # Added because you can't have filenames with more that 260 chars
-            trackname = song.title 
+            trackname = song.title[:255] + "..." # Just in case there is a song out there with a very very large title
         if (unique_songs.get(trackname)):
             duplicate_songs.append(trackname)
         else:
