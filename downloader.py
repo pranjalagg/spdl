@@ -12,6 +12,7 @@ def attach_track_metadata(trackname, outpath, is_high_quality, metadata, track_n
     trackname = re.sub(NAME_SANITIZE_REGEX, "_", trackname)
     filepath = os.path.join(outpath, f"{trackname}.mp3") if is_high_quality else os.path.join(outpath, "low_quality", f"{trackname}.mp3")
     try:
+        # raise error("Testing")
         audio = MP3(filepath, ID3=ID3)
     except error as e:
         logging.error(f"Error loading MP3 file from {filepath} --> {e}")
@@ -24,6 +25,7 @@ def attach_track_metadata(trackname, outpath, is_high_quality, metadata, track_n
             artist = metadata['artists']
             album = metadata['album']
             year = metadata['releaseDate']
+            # audio.tags = ID3()
             audio.add_tags()
             audio.tags.add(TIT2(encoding=3, text=title))
             audio.tags.add(TPE1(encoding=3, text=artist))
@@ -40,10 +42,12 @@ def attach_track_metadata(trackname, outpath, is_high_quality, metadata, track_n
             encoding=1,
             mime='image/jpeg',
             type=3,
-            desc='Cover',
+            desc=u'Cover',
             data=cover_art
         )
     )
+    # Add track number
+    # print(f"\t Adding track number: {track_number}")
     if track_number > 0:
         audio.tags.add(TRCK(encoding=3, text=str(track_number)))
     
@@ -60,11 +64,13 @@ def save_audio(trackname, link, outpath):
         return None
     
     audio_response = requests.get(link)
+
     if audio_response.status_code == 200:
         temp_file = os.path.join(outpath, f"temp_{trackname}.mp3")
         with open(temp_file, "wb") as file:
             file.write(audio_response.content)
         
+        # Check bitrate
         audio = MP3(temp_file)
         bitrate = audio.info.bitrate / 1000  # Convert to kbps
         
@@ -78,7 +84,9 @@ def save_audio(trackname, link, outpath):
             is_high_quality = False
         
         os.rename(temp_file, final_path)
+        # print(f"\t Saved {trackname} ({bitrate:.0f}kbps) to {'current' if is_high_quality else 'low_quality'} folder")
         return is_high_quality
+
     else:
         logging.error(f"Failed to download {trackname}. Status code: {audio_response.status_code}")
         print(f"\tFailed to download {trackname}. Status code: {audio_response.status_code}")
@@ -140,6 +148,7 @@ def check_existing_tracks(song_list_dict, outpath):
             track = track.split(".mp3")[0]
             if song_list_dict.get(track):
                 song_list_dict.pop(track)
+    
     return song_list_dict
 
 def cleanup(outpath):
@@ -159,7 +168,6 @@ def remove_empty_files(outpath):
 def download_playlist_tracks(playlist_link, outpath, create_folder, trackname_convention, token, max_attempts=3, mode='playlist'):
     # print(f"\n{mode[0].upper()}{mode[1:]} link identified")
     print(f"\n{mode.capitalize()} link identified")
-    # PRINT("HERE")
     song_list_dict, playlist_name_old = get_playlist_info(playlist_link, trackname_convention, mode)
     playlist_name = re.sub(NAME_SANITIZE_REGEX, "_", playlist_name_old)
     if (playlist_name != playlist_name_old):
@@ -194,6 +202,7 @@ def download_playlist_tracks(playlist_link, outpath, create_folder, trackname_co
                     if not cover_url.startswith("http"):
                         cover_url = resp['metadata']['cover']
                     # cover_art = requests.get(cover_url).content
+    # PRINT("HERE")
                     attach_track_metadata(trackname, outpath, is_high_quality, resp['metadata'], song_list_dict[trackname].track_number)
                     break # This break is here because we want to break out of the loop of the track was downloaded successfully
             except Exception as e:

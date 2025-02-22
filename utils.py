@@ -6,7 +6,6 @@ from models import Song
 
 def resolve_path(outpath, playlist_folder=False):
     if not os.path.exists(outpath):
-        create_folder = "n"
         if not playlist_folder:
             create_folder = input("Directory specified does not exist. Do you want to create it? (y/N): ")
         if playlist_folder or create_folder.lower() == "y":
