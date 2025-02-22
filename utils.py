@@ -1,9 +1,11 @@
 import os
-import json
 import re
+import json
+from config import NAME_SANITIZE_REGEX
 
 def resolve_path(outpath, playlist_folder=False):
     if not os.path.exists(outpath):
+        create_folder = "n"
         if not playlist_folder:
             create_folder = input("Directory specified does not exist. Do you want to create it? (y/N): ")
         if playlist_folder or create_folder.lower() == "y":
@@ -11,6 +13,45 @@ def resolve_path(outpath, playlist_folder=False):
         else:
             print("Exiting program")
             exit()
+
+def dict_unique(song_list, trackname_convention):
+    unique_songs = {}
+    duplicate_songs = []
+    for song in song_list:
+        trackname = f"{song['title']} - {song['artists']}"
+        if trackname_convention == 2:
+            trackname = f"{song['artists']} - {song['title']}"
+        if len(trackname) > 260:
+            trackname = song['title'][:255] + "..."
+        if unique_songs.get(trackname):
+            duplicate_songs.append(trackname)
+        else:
+            unique_songs.setdefault(trackname, song)
+    return unique_songs, duplicate_songs
+
+def make_unique_song_objects(track_list, trackname_convention, album_name, mode):
+    song_list = []
+    for i, track in enumerate(track_list, 1):
+        song_list.append({
+            'title': re.sub(NAME_SANITIZE_REGEX, "_", track['title']),
+            'artists': re.sub(NAME_SANITIZE_REGEX, "_", track['artists']),
+            'album': album_name if mode == 'album' else track.get('album'),
+            'cover': track.get('cover', 'default_cover.png'),
+            'link': f"https://open.spotify.com/track/{track['id']}",
+            'track_number': i if mode == 'playlist' else track.get('trackNumber')
+        })
+    unique_songs, duplicate_songs = dict_unique(song_list, trackname_convention)
+
+    if duplicate_songs:
+        print("\tDuplicate songs: ", len(duplicate_songs))
+        for index, song_name in enumerate(duplicate_songs, 1):
+            print(f"\t\t{index}: {song_name}")
+
+    print("\n\tUnique Songs in playlist: ", len(unique_songs))
+    for index, song_name in enumerate(unique_songs.keys(), 1):
+        print(f"\t\t{index}: {song_name}")
+    
+    return unique_songs
 
 def trackname_convention():
     print("How would you like to name the tracks?")
@@ -25,51 +66,12 @@ def trackname_convention():
         print("Invalid input. Defaulting to Title - Artist")
         return "Title - Artist", 1
 
-def handle_sync_file(sync_file):
-    if os.path.exists(sync_file):
-        print("Syncing local album/playlist folders with Spotify")
-        sync_playlist_folders(sync_file)
-        print("-" * 40)
-        print("Sync complete!")
+def get_token(reset=False):
+    if os.path.exists("./.cache") and not reset:
+        with open(".cache") as f:
+            token = json.load(f).get("token")
     else:
-        create_sync_file = input("Sync file does not exist. Do you want to create it? (y/N):")
-        if create_sync_file.lower() == "y":
-            data_for_sync_file = []
-            trackname_type, set_trackname_convention = trackname_convention()
-            data_for_sync_file.append(
-                {
-                    "convention_code": set_trackname_convention,
-                    "trackname_convention": trackname_type,
-                }
-            )
-            while True:
-                print("-" * 40)
-                playlist_link = input("Album/Playlist link (leave empty to finish): ")
-                if not playlist_link:
-                    break
-                
-                mode='playlist'
-                if re.search(r".*spotify\.com\/album\/", playlist_link):
-                    mode='album'
-                create_folder = input(f"Create a folder for this {mode}? (y/N): ")
-                download_location = input(f"Download location for tracks of this {mode} (leave empty to default to current directory): ")
-                try:
-                    _, playlist_name = get_playlist_info(playlist_link, set_trackname_convention, mode)
-                except Exception as e:
-                    print(f"Probable error with the link --> {e}. Try again!")
-                    continue
-                data_for_sync_file.append(
-                    {
-                        "name": playlist_name,
-                        "link": playlist_link,
-                        "create_folder": create_folder.lower() == "y",
-                        "download_location": download_location if download_location else os.getcwd()
-                    }
-                )
-            with open(sync_file, "w") as file:
-                json.dump(data_for_sync_file, file)
-            print("Sync file created successfully")
-            print("-" * 40)
-        else:
-            print("Exiting program")
-            exit() 
+        token = input("Enter Token: ").strip()
+        with open(".cache", "w") as f:
+            json.dump({"token": token}, f)
+    return token

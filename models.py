@@ -7,4 +7,4 @@ class Song:
     album: str
     cover: str
     link: str
-    track_number: int 
+    track_number: int
