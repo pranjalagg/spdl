@@ -193,7 +193,7 @@ def make_unique_song_objects(track_list, trackname_convention, album_name, mode)
                 album = album_name if mode == 'album' else track.get('album'),
                 cover=track.get('cover', 'default_cover.png'),
                 link=f"https://open.spotify.com/track/{track['id']}",
-                track_number=i
+                track_number=i if mode == 'playlist' else track.get('trackNumber')
             )
         )
     # unique_songs = set_unique(song_list)
