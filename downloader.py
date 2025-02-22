@@ -6,6 +6,7 @@ from mutagen.mp3 import MP3
 from mutagen.id3 import ID3, APIC, error, TRCK, TIT2, TALB, TPE1, TDRC
 from config import NAME_SANITIZE_REGEX
 from spotify_api import get_track_info
+from utils import resolve_path, get_token
 
 def attach_track_metadata(trackname, outpath, is_high_quality, metadata, track_number=0):
     trackname = re.sub(NAME_SANITIZE_REGEX, "_", trackname)
@@ -84,28 +85,32 @@ def save_audio(trackname, link, outpath):
         return None
 
 def check_track_playlist(link, outpath, create_folder, trackname_convention, token):
-    from utils import resolve_path  # local import to avoid circular dependency
+    # from utils import resolve_path  # local import to avoid circular dependency
     resolve_path(outpath)
+    # if "/track/" in link:
     if re.search(r".*spotify\.com\/(?:intl-[a-zA-Z]{2}\/)?track\/", link):
         download_track(link, outpath, trackname_convention, token)
+    # elif "/playlist/" in link:
     elif re.search(r".*spotify\.com\/playlist\/", link):
+        # PRINT("HERE")
         download_playlist_tracks(link, outpath, create_folder, trackname_convention, token)
+    # elif "/album/" in link:
     elif re.search(r".*spotify\.com\/album\/", link):
-        download_playlist_tracks(link, outpath, create_folder, trackname_convention, token, mode='album')
+        download_playlist_tracks(link, outpath, create_folder, trackname_convention, mode='album', token=token)
     else:
         logging.error(f"{link} is not a valid Spotify track or playlist link")
         print(f"\n{link} is not a valid Spotify track or playlist link")
 
 def download_track(track_link, outpath, trackname_convention, token, max_attempts=3):
     print("\nTrack link identified")
+
     resp = get_track_info(track_link, token)
     if resp["statusCode"] == 403:
         print("\tStatus code 403: Unauthorized access. Please provide a new token.")
         logging.error("Token expired, request new token")
-        from utils import get_token
-        token = get_token(reset=True)
-        resp = get_track_info(track_link, token)
-    if not resp['success']:
+        token = get_token(reset=True) # Resets the cache
+        resp = get_track_info(track_link, token)  # Retry with new token
+    if resp['success'] == False:
         print(f"Error: {resp['message']}")
         logging.error(f"Error: {resp['message']}")
         return
@@ -117,8 +122,10 @@ def download_track(track_link, outpath, trackname_convention, token, max_attempt
     print(f"\nDownloading {trackname} to ({outpath})")
     for attempt in range(max_attempts):
         try:
+            # raise Exception("Testing")
             is_high_quality = save_audio(trackname, resp['link'], outpath)
-            if is_high_quality is not None:
+            if is_high_quality is not None:  # Check if download was successful
+                # cover_art = requests.get(resp['metadata']['cover']).content
                 attach_track_metadata(trackname, outpath, is_high_quality, resp['metadata'])
             break
         except Exception as e:
@@ -141,7 +148,10 @@ def cleanup(outpath):
             os.remove(os.path.join(outpath, file))
 
 def remove_empty_files(outpath):
+    # Check main directory
     cleanup(outpath)
+    
+    # Check low_quality directory if it exists
     low_quality_path = os.path.join(outpath, "low_quality")
     if os.path.exists(low_quality_path):
         cleanup(low_quality_path)
