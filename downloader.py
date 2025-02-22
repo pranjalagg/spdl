@@ -92,10 +92,10 @@ def check_track_playlist(link, outpath, create_folder, trackname_convention, tok
         download_track(link, outpath, trackname_convention, token)
     # elif "/playlist/" in link:
     elif re.search(r".*spotify\.com\/playlist\/", link):
-        # PRINT("HERE")
         download_playlist_tracks(link, outpath, create_folder, trackname_convention, token)
     # elif "/album/" in link:
     elif re.search(r".*spotify\.com\/album\/", link):
+        # PRINT("HERE")
         download_playlist_tracks(link, outpath, create_folder, trackname_convention, mode='album', token=token)
     else:
         logging.error(f"{link} is not a valid Spotify track or playlist link")
@@ -159,6 +159,7 @@ def remove_empty_files(outpath):
 def download_playlist_tracks(playlist_link, outpath, create_folder, trackname_convention, token, max_attempts=3, mode='playlist'):
     # print(f"\n{mode[0].upper()}{mode[1:]} link identified")
     print(f"\n{mode.capitalize()} link identified")
+    # PRINT("HERE")
     song_list_dict, playlist_name_old = get_playlist_info(playlist_link, trackname_convention, mode)
     playlist_name = re.sub(NAME_SANITIZE_REGEX, "_", playlist_name_old)
     if (playlist_name != playlist_name_old):
