@@ -7,7 +7,7 @@ import json
 import sys
 from dataclasses import dataclass
 from mutagen.mp3 import MP3
-from mutagen.id3 import ID3, APIC, error, TRCK
+from mutagen.id3 import ID3, APIC, error, TRCK, TIT2, TALB, TPE1, TDRC
 
 if sys.version_info >= (3, 9):
     logging.basicConfig(
@@ -70,13 +70,12 @@ def check_track_playlist(link, outpath, create_folder, trackname_convention, tok
 
 def  get_track_info(link, token):
     track_id = link.split("/")[-1].split("?")[0]
-    print(track_id)
     response = requests.get(f"https://api.spotidownloader.com/download/{track_id}?token={token}", headers=CUSTOM_HEADER)
     response = response.json()
 
     return response
 
-def attach_cover_art(trackname, cover_art, outpath, is_high_quality, track_number=0):
+def attach_track_metadata(trackname, outpath, is_high_quality, metadata, track_number=0):
     trackname = re.sub(NAME_SANITIZE_REGEX, "_", trackname)
     filepath = os.path.join(outpath, f"{trackname}.mp3") if is_high_quality else os.path.join(outpath, "low_quality", f"{trackname}.mp3")
     try:
@@ -89,12 +88,22 @@ def attach_cover_art(trackname, cover_art, outpath, is_high_quality, track_numbe
 
     if audio.tags is None:
         try:
+            title = metadata['title']
+            artist = metadata['artists']
+            album = metadata['album']
+            year = metadata['releaseDate']
+            # audio.tags = ID3()
             audio.add_tags()
+            audio.tags.add(TIT2(encoding=3, text=title))
+            audio.tags.add(TPE1(encoding=3, text=artist))
+            audio.tags.add(TALB(encoding=3, text=album))
+            audio.tags.add(TDRC(encoding=3, text=year))
         except error as e:
             logging.error(f"Error adding ID3 tags to {filepath} --> {e}")
             print(f"\tError adding ID3 tags --> {e}")
             return 
         
+    cover_art = requests.get(metadata['cover']).content
     audio.tags.add(
         APIC(
             encoding=1,
@@ -184,7 +193,7 @@ def make_unique_song_objects(track_list, trackname_convention, album_name, mode)
                 album = album_name if mode == 'album' else track.get('album'),
                 cover=track.get('cover', 'default_cover.png'),
                 link=f"https://open.spotify.com/track/{track['id']}",
-                track_number=i
+                track_number=i if mode == 'playlist' else track.get('trackNumber')
             )
         )
     # unique_songs = set_unique(song_list)
@@ -212,12 +221,12 @@ def get_playlist_info(link, trackname_convention, mode):
     
     print(f"Getting songs from {mode} (this might take a while ...)")
     track_list = []
-    response = requests.get(f"https://api.spotidownloader.com/tracklist/{mode}/{playlist_id}", headers=CUSTOM_HEADER)
+    response = requests.get(f"https://api.spotidownloader.com/tracks/{mode}/{playlist_id}", headers=CUSTOM_HEADER)
     response = response.json()
     track_list.extend(response['trackList'])
     next_offset = response['nextOffset']
     while next_offset:
-        response = requests.get(f"https://api.spotidownloader.com/tracklist/{mode}/{playlist_id}?offset={next_offset}", headers=CUSTOM_HEADER)
+        response = requests.get(f"https://api.spotidownloader.com/tracks/{mode}/{playlist_id}?offset={next_offset}", headers=CUSTOM_HEADER)
         response = response.json()
         track_list.extend(response['trackList'])
         next_offset = response['nextOffset']
@@ -260,8 +269,8 @@ def download_track(track_link, outpath, trackname_convention, token, max_attempt
             # raise Exception("Testing")
             is_high_quality = save_audio(trackname, resp['link'], outpath)
             if is_high_quality is not None:  # Check if download was successful
-                cover_art = requests.get(resp['metadata']['cover']).content
-                attach_cover_art(trackname, cover_art, outpath, is_high_quality)
+                # cover_art = requests.get(resp['metadata']['cover']).content
+                attach_track_metadata(trackname, outpath, is_high_quality, resp['metadata'])
             break
         except Exception as e:
             logging.error(f"Attempt {attempt+1}/{max_attempts} - {trackname} --> {e}")
@@ -328,8 +337,8 @@ def download_playlist_tracks(playlist_link, outpath, create_folder, trackname_co
                     cover_url = song_list_dict[trackname].cover
                     if not cover_url.startswith("http"):
                         cover_url = resp['metadata']['cover']
-                    cover_art = requests.get(cover_url).content
-                    attach_cover_art(trackname, cover_art, outpath, is_high_quality, song_list_dict[trackname].track_number)
+                    # cover_art = requests.get(cover_url).content
+                    attach_track_metadata(trackname, outpath, is_high_quality, resp['metadata'], song_list_dict[trackname].track_number)
                     break # This break is here because we want to break out of the loop of the track was downloaded successfully
             except Exception as e:
                 logging.error(f"Attempt {attempt+1}/{max_attempts} - {playlist_name}: {trackname} --> {e}")
