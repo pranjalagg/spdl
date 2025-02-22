@@ -221,12 +221,12 @@ def get_playlist_info(link, trackname_convention, mode):
     
     print(f"Getting songs from {mode} (this might take a while ...)")
     track_list = []
-    response = requests.get(f"https://api.spotidownloader.com/tracklist/{mode}/{playlist_id}", headers=CUSTOM_HEADER)
+    response = requests.get(f"https://api.spotidownloader.com/tracks/{mode}/{playlist_id}", headers=CUSTOM_HEADER)
     response = response.json()
     track_list.extend(response['trackList'])
     next_offset = response['nextOffset']
     while next_offset:
-        response = requests.get(f"https://api.spotidownloader.com/tracklist/{mode}/{playlist_id}?offset={next_offset}", headers=CUSTOM_HEADER)
+        response = requests.get(f"https://api.spotidownloader.com/tracks/{mode}/{playlist_id}?offset={next_offset}", headers=CUSTOM_HEADER)
         response = response.json()
         track_list.extend(response['trackList'])
         next_offset = response['nextOffset']
@@ -337,8 +337,8 @@ def download_playlist_tracks(playlist_link, outpath, create_folder, trackname_co
                     cover_url = song_list_dict[trackname].cover
                     if not cover_url.startswith("http"):
                         cover_url = resp['metadata']['cover']
-                    cover_art = requests.get(cover_url).content
-                    # attach_cover_art(trackname, cover_art, outpath, is_high_quality, song_list_dict[trackname].track_number)
+                    # cover_art = requests.get(cover_url).content
+                    attach_track_metadata(trackname, outpath, is_high_quality, resp['metadata'], song_list_dict[trackname].track_number)
                     break # This break is here because we want to break out of the loop of the track was downloaded successfully
             except Exception as e:
                 logging.error(f"Attempt {attempt+1}/{max_attempts} - {playlist_name}: {trackname} --> {e}")
