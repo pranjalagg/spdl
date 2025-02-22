@@ -5,8 +5,8 @@ import logging
 from mutagen.mp3 import MP3
 from mutagen.id3 import ID3, APIC, error, TRCK, TIT2, TALB, TPE1, TDRC
 from config import NAME_SANITIZE_REGEX
-from spotify_api import get_track_info
-from utils import resolve_path, get_token
+from spotify_api import get_track_info, get_playlist_info
+from utils import resolve_path, get_token, make_unique_song_objects, resolve_path
 
 def attach_track_metadata(trackname, outpath, is_high_quality, metadata, track_number=0):
     trackname = re.sub(NAME_SANITIZE_REGEX, "_", trackname)
@@ -157,20 +157,17 @@ def remove_empty_files(outpath):
         cleanup(low_quality_path)
 
 def download_playlist_tracks(playlist_link, outpath, create_folder, trackname_convention, token, max_attempts=3, mode='playlist'):
+    # print(f"\n{mode[0].upper()}{mode[1:]} link identified")
     print(f"\n{mode.capitalize()} link identified")
-    from spotify_api import get_playlist_info
-    from utils import make_unique_song_objects, resolve_path
-    track_list, playlist_name_old = get_playlist_info(playlist_link, trackname_convention, mode)
+    song_list_dict, playlist_name_old = get_playlist_info(playlist_link, trackname_convention, mode)
     playlist_name = re.sub(NAME_SANITIZE_REGEX, "_", playlist_name_old)
-    if playlist_name != playlist_name_old:
+    if (playlist_name != playlist_name_old):
         print(f'\n"{playlist_name_old}" is not a valid folder name. Using "{playlist_name}" instead.')
 
-    if create_folder:
+    if create_folder == True:
         outpath = os.path.join(outpath, playlist_name)
     resolve_path(outpath, playlist_folder=True)
 
-    # Build unique song objects and check for existing files
-    song_list_dict = make_unique_song_objects(track_list, trackname_convention, playlist_name_old, mode)
     if os.path.exists(outpath):
         song_list_dict = check_existing_tracks(song_list_dict, outpath)
     if not song_list_dict:
@@ -179,23 +176,27 @@ def download_playlist_tracks(playlist_link, outpath, create_folder, trackname_co
 
     print(f"\nDownloading {len(song_list_dict)} new track(s) from {playlist_name} to ({outpath})")
     print("-" * 40)
-    for index, trackname in enumerate(list(song_list_dict.keys()), 1):
+    for index, trackname in enumerate(song_list_dict.keys(), 1):
         print(f"{index}/{len(song_list_dict)}: {trackname}")
         for attempt in range(max_attempts):
             try:
-                track_obj = song_list_dict[trackname]
-                resp = get_track_info(track_obj['link'], token)
+                # raise Exception("Testing")
+                resp = get_track_info(song_list_dict[trackname].link, token)
                 if resp["statusCode"] == 403:
                     print("\tStatus code 403: Unauthorized access. Please provide a new token.")
                     logging.error("Token expired. Requested new token")
-                    from utils import get_token
-                    token = get_token(reset=True)
-                    resp = get_track_info(track_obj['link'], token)
+                    token = get_token(reset=True) # Resets the cache
+                    resp = get_track_info(song_list_dict[trackname].link, token)  # Retry with new token
                 is_high_quality = save_audio(trackname, resp['link'], outpath)
-                if is_high_quality is not None:
-                    attach_track_metadata(trackname, outpath, is_high_quality, resp['metadata'], track_obj['track_number'])
-                    break
+                if is_high_quality is not None:  # Check if download was successful
+                    cover_url = song_list_dict[trackname].cover
+                    if not cover_url.startswith("http"):
+                        cover_url = resp['metadata']['cover']
+                    # cover_art = requests.get(cover_url).content
+                    attach_track_metadata(trackname, outpath, is_high_quality, resp['metadata'], song_list_dict[trackname].track_number)
+                    break # This break is here because we want to break out of the loop of the track was downloaded successfully
             except Exception as e:
                 logging.error(f"Attempt {attempt+1}/{max_attempts} - {playlist_name}: {trackname} --> {e}")
                 print(f"\t\tAttempt {attempt+1}/{max_attempts} failed with error: ", e)
+            
     remove_empty_files(outpath)
