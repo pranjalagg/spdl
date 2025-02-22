@@ -23,11 +23,12 @@ else:
     logger.addHandler(file_handler)
 
 def main():
+    # Initialize parser
     parser = argparse.ArgumentParser(description="Program to download tracks from Spotify via CLI")
+    # Add arguments
     parser.add_argument("-link", nargs="+", help="URL of the Spotify track or playlist")
     parser.add_argument("-outpath", nargs="?", default=os.getcwd(), help="Path to save the downloaded track")
-    parser.add_argument("-sync", nargs="?", const="sync.json",
-                        help="Path of sync.json file to sync local playlist folders with Spotify playlists")
+    parser.add_argument("-sync", nargs="?", const="sync.json", help="Path of sync.json file to sync local playlist folders with Spotify playlists")
     parser.add_argument("-folder", nargs="?", default=True, help="Create a folder for the playlist(s)")
 
     args = parser.parse_args()
@@ -38,8 +39,8 @@ def main():
         token = get_token()
         _, set_trackname_convention = trackname_convention()
         for link in args.link:
-            check_track_playlist(link, args.outpath, create_folder=args.folder,
-                                 trackname_convention=set_trackname_convention, token=token)
+        # PRINT("HERE")
+            check_track_playlist(link, args.outpath, create_folder=args.folder, trackname_convention=set_trackname_convention, token=token)
     
     print("\n" + "-"*25 + " Task complete ;) " + "-"*25 + "\n")
 

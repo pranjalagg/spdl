@@ -70,8 +70,13 @@ def get_token(reset=False):
     if os.path.exists("./.cache") and not reset:
         with open(".cache") as f:
             token = json.load(f).get("token")
+
     else:
         token = input("Enter Token: ").strip()
         with open(".cache", "w") as f:
-            json.dump({"token": token}, f)
+            json.dump(
+            {
+                "token": token,
+            }, f
+        )
     return token
