@@ -5,3 +5,5 @@ var/
 *.mp3
 *.log
 sync*.json
+.cache
+test.py
