@@ -14,8 +14,7 @@ def sync_playlist_folders(sync_file):
             if data.get("convention_code"):
                 set_trackname_convention = data["convention_code"]
                 continue
-            check_track_playlist(data['link'], data['download_location'], data['create_folder'],
-                                 set_trackname_convention, token=get_token())
+            check_track_playlist(data['link'], data['download_location'], data['create_folder'], set_trackname_convention, token=get_token())
 
 def handle_sync_file(sync_file):
     if (os.path.exists(sync_file)):

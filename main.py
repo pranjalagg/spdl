@@ -39,7 +39,6 @@ def main():
         token = get_token()
         _, set_trackname_convention = trackname_convention()
         for link in args.link:
-        # PRINT("HERE")
             check_track_playlist(link, args.outpath, create_folder=args.folder, trackname_convention=set_trackname_convention, token=token)
     
     print("\n" + "-"*25 + " Task complete ;) " + "-"*25 + "\n")

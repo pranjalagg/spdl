@@ -6,7 +6,7 @@ from mutagen.mp3 import MP3
 from mutagen.id3 import ID3, APIC, error, TRCK, TIT2, TALB, TPE1, TDRC
 from config import NAME_SANITIZE_REGEX
 from spotify_api import get_track_info, get_playlist_info
-from utils import resolve_path, get_token, make_unique_song_objects, resolve_path
+from utils import resolve_path, get_token, resolve_path
 
 def attach_track_metadata(trackname, outpath, is_high_quality, metadata, track_number=0):
     trackname = re.sub(NAME_SANITIZE_REGEX, "_", trackname)
@@ -103,7 +103,6 @@ def check_track_playlist(link, outpath, create_folder, trackname_convention, tok
         download_playlist_tracks(link, outpath, create_folder, trackname_convention, token)
     # elif "/album/" in link:
     elif re.search(r".*spotify\.com\/album\/", link):
-        # PRINT("HERE")
         download_playlist_tracks(link, outpath, create_folder, trackname_convention, mode='album', token=token)
     else:
         logging.error(f"{link} is not a valid Spotify track or playlist link")
@@ -202,7 +201,6 @@ def download_playlist_tracks(playlist_link, outpath, create_folder, trackname_co
                     if not cover_url.startswith("http"):
                         cover_url = resp['metadata']['cover']
                     # cover_art = requests.get(cover_url).content
-    # PRINT("HERE")
                     attach_track_metadata(trackname, outpath, is_high_quality, resp['metadata'], song_list_dict[trackname].track_number)
                     break # This break is here because we want to break out of the loop of the track was downloaded successfully
             except Exception as e:
