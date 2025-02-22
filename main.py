@@ -28,9 +28,9 @@ else:
     logger.addHandler(file_handler)
 
 CUSTOM_HEADER = {
-    'Host': 'api.spotifydown.com',
-    'Referer': 'https://spotifydown.com/',
-    'Origin': 'https://spotifydown.com',
+    'Host': 'api.spotidownloader.com',
+    'Referer': 'https://spotidownloader.com/',
+    'Origin': 'https://spotidownloader.com',
 }
 
 NAME_SANITIZE_REGEX = re.compile(r"[<>:\"\/\\|?*]")
@@ -70,7 +70,8 @@ def check_track_playlist(link, outpath, create_folder, trackname_convention, tok
 
 def  get_track_info(link, token):
     track_id = link.split("/")[-1].split("?")[0]
-    response = requests.get(f"https://api.spotifydown.com/download/{track_id}?token={token}", headers=CUSTOM_HEADER)
+    print(track_id)
+    response = requests.get(f"https://api.spotidownloader.com/download/{track_id}?token={token}", headers=CUSTOM_HEADER)
     response = response.json()
 
     return response
@@ -202,7 +203,7 @@ def make_unique_song_objects(track_list, trackname_convention, album_name, mode)
 
 def get_playlist_info(link, trackname_convention, mode):
     playlist_id = link.split("/")[-1].split("?")[0]
-    response = requests.get(f"https://api.spotifydown.com/metadata/{mode}/{playlist_id}", headers=CUSTOM_HEADER)
+    response = requests.get(f"https://api.spotidownloader.com/metadata/{mode}/{playlist_id}", headers=CUSTOM_HEADER)
     response = response.json()
     playlist_name = response['title']
     if response['success']:
@@ -211,12 +212,12 @@ def get_playlist_info(link, trackname_convention, mode):
     
     print(f"Getting songs from {mode} (this might take a while ...)")
     track_list = []
-    response = requests.get(f"https://api.spotifydown.com/tracklist/{mode}/{playlist_id}", headers=CUSTOM_HEADER)
+    response = requests.get(f"https://api.spotidownloader.com/tracklist/{mode}/{playlist_id}", headers=CUSTOM_HEADER)
     response = response.json()
     track_list.extend(response['trackList'])
     next_offset = response['nextOffset']
     while next_offset:
-        response = requests.get(f"https://api.spotifydown.com/tracklist/{mode}/{playlist_id}?offset={next_offset}", headers=CUSTOM_HEADER)
+        response = requests.get(f"https://api.spotidownloader.com/tracklist/{mode}/{playlist_id}?offset={next_offset}", headers=CUSTOM_HEADER)
         response = response.json()
         track_list.extend(response['trackList'])
         next_offset = response['nextOffset']
