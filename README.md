@@ -3,16 +3,22 @@
 
 ## Description
 
-This project is a tool to allow users to effortlessly download tracks and playlists fetched from Spotify, complete with metadata and album art.
+This project is a tool that allows users to effortlessly download tracks and playlists fetched from Spotify, complete with metadata and album art.
 
 > [!IMPORTANT]
-> Due to the new updates to the api, a token is needed every once in a while. Thus everytime prompted you'll have to provide the token. Get the token using the below steps:
-> 1. Go to https://spotifydown.com/ and open the "Network" tab in the browser devtools (right click > Inspect > navigate to the Network tab or use the key combination: Ctrl + Shift + I)
-> 2. While the Network tab is open press the download button.
-> 3. Press download again. You will see some activity in the network tab.
-> 4. Filter to only show `fetch` requests (from the "Type" column) and check through them for the one request url that has the token.
-> 5. Copy only the token part ( ...?token=***03jdnoiem...*** )
->
+> Due to the new updates to the API, a token is needed every once in a while. Thus, every time prompted, you'll have to provide the token. Get the token using the below steps:
+> 1. Go to https://spotifydown.com/ and open the "Network" tab in the browser devtools (right click > Inspect > navigate to the Network tab or use the key combination: `Ctrl + Shift + I`)
+> 2. If you see a lot of things in the Network tab, press `Ctrl + L` to clear all of those
+> 3. While the Network tab is open, paste any URL of a track from Spotify and press the download button. You will see some activity in the Network tab.
+> 4. Now, click the download button beside the track name on the UI. You will again see some activity in the Network tab.
+> 5. _(Optional)_ Filter to only show `fetch` requests (from the "Type" column)
+> 6. Click on the `fetch` request that came after clicking the download button in Step 4.
+> 
+>    <img width="831" alt="image" src="https://github.com/user-attachments/assets/fe258188-36d1-4cfe-9d29-740d9b362b98" />
+> 8. Copy only the token part ( ...?token=***0.SA6dCVY...*** ) [Yellow portion of text only in the screenshot below]
+> 
+>    <img width="797" alt="image" src="https://github.com/user-attachments/assets/37b9b327-e959-4e90-a411-4c591bb28cbd" />
+> 
 > <sub>spdl is currently under development, so please expect frequent changes to the way it works.</sub>
 
 
@@ -20,7 +26,7 @@ This project is a tool to allow users to effortlessly download tracks and playli
 **System Requirements:**
 
 * **Python**: `version 3.8` or above
-* **Pip** package manager (Use `pip --version` to check, otherwise instructions to install pip can be found [here](https://pip.pypa.io/en/stable/installation/))
+* **Pip** package manager (Use `pip --version` to check if you have it, otherwise instructions to install pip can be found [here](https://pip.pypa.io/en/stable/installation/))
 
 **Installation:**
 1. Lauch your terminal instance and navigate to the `spdl` directory
