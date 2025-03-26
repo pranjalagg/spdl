@@ -2,6 +2,7 @@ import os
 import re
 import requests
 import logging
+from config import PURR_HEADER
 from mutagen.mp3 import MP3
 from mutagen.id3 import ID3, APIC, error, TRCK, TIT2, TALB, TPE1, TDRC
 from config import NAME_SANITIZE_REGEX
@@ -63,7 +64,7 @@ def save_audio(trackname, link, outpath):
         print("\tThis track already exists in the directory. Skipping download!")
         return None
     
-    audio_response = requests.get(link)
+    audio_response = requests.get(link, headers=PURR_HEADER)
 
     if audio_response.status_code == 200:
         temp_file = os.path.join(outpath, f"temp_{trackname}.mp3")
