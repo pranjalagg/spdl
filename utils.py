@@ -1,6 +1,7 @@
 import os
 import re
 import json
+import time
 from config import NAME_SANITIZE_REGEX
 from models import Song
 
@@ -70,16 +71,19 @@ def trackname_convention():
         return "Title - Artist", 1
 
 def get_token(reset=False):
-    if os.path.exists("./.cache") and not reset:
-        with open(".cache") as f:
-            token = json.load(f).get("token")
+    cache_file = "./.cache"
+    if os.path.exists(cache_file) and not reset:
 
-    else:
+        file_age = time.time() - os.path.getmtime(cache_file)
+
+        if file_age > 540:
+            reset = True
+
+    if reset or not os.path.exists(cache_file):
         token = input("Enter Token: ").strip()
-        with open(".cache", "w") as f:
-            json.dump(
-            {
-                "token": token,
-            }, f
-        )
+        with open(cache_file, "w") as f:
+            json.dump({"token": token}, f)
+    else:
+        with open(cache_file) as f:
+            token = json.load(f).get("token")
     return token

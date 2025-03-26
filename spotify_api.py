@@ -7,9 +7,9 @@ def get_track_info(link, token):
     response = requests.get(f"https://api.spotidownloader.com/download/{track_id}?token={token}", headers=CUSTOM_HEADER)
     return response.json()
 
-def get_playlist_info(link, trackname_convention, mode):
+def get_playlist_info(link, trackname_convention, mode, token):
     playlist_id = link.split("/")[-1].split("?")[0]
-    response = requests.get(f"https://api.spotidownloader.com/metadata/{mode}/{playlist_id}", headers=CUSTOM_HEADER)
+    response = requests.get(f"https://api.spotidownloader.com/metadata/{mode}/{playlist_id}?token={token}", headers=CUSTOM_HEADER)
     metadata = response.json()
     playlist_name = metadata['title']
     if metadata['success']:
@@ -18,12 +18,12 @@ def get_playlist_info(link, trackname_convention, mode):
     
     print(f"Getting songs from {mode} (this might take a while ...)")
     track_list = []
-    response = requests.get(f"https://api.spotidownloader.com/tracks/{mode}/{playlist_id}", headers=CUSTOM_HEADER)
+    response = requests.get(f"https://api.spotidownloader.com/tracks/{mode}/{playlist_id}?token={token}", headers=CUSTOM_HEADER)
     tracks_data = response.json()
     track_list.extend(tracks_data['trackList'])
     next_offset = tracks_data['nextOffset']
     while next_offset:
-        response = requests.get(f"https://api.spotidownloader.com/tracks/{mode}/{playlist_id}?offset={next_offset}", headers=CUSTOM_HEADER)
+        response = requests.get(f"https://api.spotidownloader.com/tracks/{mode}/{playlist_id}?offset={next_offset}&token={token}", headers=CUSTOM_HEADER)
         tracks_data = response.json()
         track_list.extend(tracks_data['trackList'])
         next_offset = tracks_data['nextOffset']
