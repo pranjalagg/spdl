@@ -2,6 +2,7 @@ import os
 import re
 import requests
 import logging
+from config import PURR_HEADER
 from mutagen.mp3 import MP3
 from mutagen.id3 import ID3, APIC, error, TRCK, TIT2, TALB, TPE1, TDRC
 from config import NAME_SANITIZE_REGEX
@@ -63,7 +64,7 @@ def save_audio(trackname, link, outpath):
         print("\tThis track already exists in the directory. Skipping download!")
         return None
     
-    audio_response = requests.get(link)
+    audio_response = requests.get(link, headers=PURR_HEADER)
 
     if audio_response.status_code == 200:
         temp_file = os.path.join(outpath, f"temp_{trackname}.mp3")
@@ -167,7 +168,7 @@ def remove_empty_files(outpath):
 def download_playlist_tracks(playlist_link, outpath, create_folder, trackname_convention, token, max_attempts=3, mode='playlist'):
     # print(f"\n{mode[0].upper()}{mode[1:]} link identified")
     print(f"\n{mode.capitalize()} link identified")
-    song_list_dict, playlist_name_old = get_playlist_info(playlist_link, trackname_convention, mode)
+    song_list_dict, playlist_name_old = get_playlist_info(playlist_link, trackname_convention, mode, token)
     playlist_name = re.sub(NAME_SANITIZE_REGEX, "_", playlist_name_old)
     if (playlist_name != playlist_name_old):
         print(f'\n"{playlist_name_old}" is not a valid folder name. Using "{playlist_name}" instead.')
