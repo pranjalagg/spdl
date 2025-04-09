@@ -7,7 +7,7 @@ This project is a tool that allows users to effortlessly download tracks and pla
 
 > [!IMPORTANT]
 > Due to the new updates to the API, a token is needed every once in a while. Thus, every time prompted, you'll have to provide the token. Get the token using the below steps:
-> 1. Go to https://spotifydown.com/ and open the "Network" tab in the browser devtools (right click > Inspect > navigate to the Network tab or use the key combination: `Ctrl + Shift + I`)
+> 1. Go to https://spotidownloader.com/ and open the "Network" tab in the browser devtools (right click > Inspect > navigate to the Network tab or use the key combination: `Ctrl + Shift + I`)
 > 2. If you see a lot of things in the Network tab, press `Ctrl + L` to clear all of those
 > 3. While the Network tab is open, paste any URL of a track from Spotify and press the download button. You will see some activity in the Network tab.
 > 4. Now, click the download button beside the track name on the UI. You will again see some activity in the Network tab.
