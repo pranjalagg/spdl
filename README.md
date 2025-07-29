@@ -1,105 +1,195 @@
-# SPDL
+# SPDL - Spotify Downloader
 
+A command-line tool to download songs from Spotify with high-quality audio support.
 
-## Description
+## Features
 
-This project is a tool that allows users to effortlessly download tracks and playlists fetched from Spotify, complete with metadata and album art.
+- 🎵 Download individual tracks and playlists
+- 🔄 Sync playlists automatically
+- 🎚️ Multiple quality options (128kbps, 192kbps, 320kbps)
+- 🔑 Token-based authentication to bypass Cloudflare protection
+- 📁 Organized file naming and directory structure
+- 🚀 Fast and efficient downloads
 
-> [!IMPORTANT]
-> Due to the new updates to the API, a token is needed every once in a while. Thus, every time prompted, you'll have to provide the token. Get the token using the below steps:
-> 1. Go to https://spotidownloader.com/ and open the "Network" tab in the browser devtools (right click > Inspect > navigate to the Network tab or use the key combination: `Ctrl + Shift + I`)
-> 2. If you see a lot of things in the Network tab, press `Ctrl + L` to clear all of those
-> 3. While the Network tab is open, paste any URL of a track from Spotify and press the download button. You will see some activity in the Network tab.
-> 4. Now, click the download button beside the track name on the UI. You will again see some activity in the Network tab.
-> 5. _(Optional)_ Filter to only show `fetch` requests (from the "Type" column)
-> 6. Click on the `fetch` request that came after clicking the download button in Step 4.
-> 
->    <img width="831" alt="image" src="https://github.com/user-attachments/assets/fe258188-36d1-4cfe-9d29-740d9b362b98" />
-> 8. Copy only the token part ( ...?token=***0.SA6dCVY...*** ) [Yellow portion of text only in the screenshot below]
-> 
->    <img width="797" alt="image" src="https://github.com/user-attachments/assets/37b9b327-e959-4e90-a411-4c591bb28cbd" />
-> 
-> <sub>spdl is currently under development, so please expect frequent changes to the way it works.</sub>
+## Installation
 
+1. Clone the repository:
+```bash
+git clone https://github.com/pranjalagg/spdl.git
+cd spdl
+```
 
-## Requirements and Installation
-**System Requirements:**
+2. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
 
-* **Python**: `version 3.8` or above
-* **Pip** package manager (Use `pip --version` to check if you have it, otherwise instructions to install pip can be found [here](https://pip.pypa.io/en/stable/installation/))
+## Quick Start
 
-**Installation:**
-1. Lauch your terminal instance and navigate to the `spdl` directory
-2. Execute `pip install -r requirements.txt` to install the dependencies
+### 1. Setup Token (Required)
+
+Due to Cloudflare protection, you need to obtain a token from spotifydown.com:
+
+```bash
+python main.py setup
+```
+
+Follow the instructions to get your token. This is a one-time setup.
+
+### 2. Download a Single Track
+
+```bash
+python main.py download "https://open.spotify.com/track/your-track-id"
+```
+
+### 3. Download a Playlist
+
+```bash
+python main.py playlist "https://open.spotify.com/playlist/your-playlist-id"
+```
+
+### 4. Sync All Playlists
+
+```bash
+python main.py sync
+```
 
 ## Usage
-To download a track or playlist, run the main file using the following command:
-```ps1
-python main.py -link <link to your track or playlist>
+
+### Commands
+
+- `setup` - Setup token for SpotifyDown API
+- `download <url>` - Download a single track
+- `playlist <url>` - Download all tracks from a playlist
+- `sync` - Sync all playlists from sync.json
+
+### Options
+
+- `--quality <128|192|320>` - Set download quality (default: 320)
+- `--verbose` - Enable verbose logging
+
+### Examples
+
+```bash
+# Setup token (first time only)
+python main.py setup
+
+# Download a track with 192kbps quality
+python main.py download "https://open.spotify.com/track/4iV5W9uYEdYUVa79Axb7Rh" --quality 192
+
+# Download a playlist
+python main.py playlist "https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M"
+
+# Sync all playlists
+python main.py sync
+
+# Enable verbose logging
+python main.py download "https://open.spotify.com/track/4iV5W9uYEdYUVa79Axb7Rh" --verbose
 ```
 
-Optionally the download directory can be specified using the `-outpath` flag. If no outpath is provided, downloads default to the current directory.
+## Token Setup Instructions
 
-Example:
-```ps1
-python main.py -link "https://open.spotify.com/track/6UVEJw6Ikma86JNK55KPkc?si=78dd2cdb137c4214" -outpath "F:/Songs/"
+### Method 1: Browser Developer Tools
+
+1. Visit [spotifydown.com](https://spotifydown.com)
+2. Open browser developer tools (F12)
+3. Go to Network tab
+4. Try to download any song
+5. Look for requests to `api.spotifydown.com`
+6. Find the 'token' parameter in the request URL
+7. Copy the token value
+
+### Method 2: Direct URL Extraction
+
+1. Go to [spotifydown.com](https://spotifydown.com)
+2. Complete any captcha if needed
+3. Try to download a song
+4. Check the download URL for the token parameter
+5. Copy the token from the URL
+
+### Method 3: Environment Variable
+
+You can also set the token as an environment variable:
+
+```bash
+export SPOTIFYDOWN_TOKEN="your_token_here"
+python main.py download "https://open.spotify.com/track/your-track-id"
 ```
 
-_Note 1: You can paste more than one link one after the other separated by space to download multiple tracks at once_
-_Note 2: For playlists, by default the program saves the tracks in a folder with the name of the playlist_
+## Configuration
 
-## Different Use Cases
-1. Download a single track or playlist:
-   ```ps1
-   python main.py -link "https://open.spotify.com/track/6UVEJw6Ikma86JNK55KPkc?si=78dd2cdb137c4214"
-   ```
-2. Download a single track or playlist at a specified location:
-   ```ps1
-   python main.py -link "https://open.spotify.com/track/6UVEJw6Ikma86JNK55KPkc?si=78dd2cdb137c4214" -outpath "F:/Songs"
-   ```
-3. Download multiple  tracks / multiple playlists / or a combination:
-   ```ps1
-   python main.py -link "https://open.spotify.com/track/6UVEJw6Ikma86JNK55KPkc?si=78dd2cdb137c4214" "https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M?si=9fab95ad8ab349a7"
-   ```
-4. Download multiple  tracks / multiple playlists / or a combination to a specified location:
-   ```ps1
-   python main.py -link "https://open.spotify.com/track/6UVEJw6Ikma86JNK55KPkc?si=78dd2cdb137c4214" "https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M?si=9fab95ad8ab349a7" -outpath "F:/Songs
-   ```
-5. Download playlist(s) track in a single folder (default is to make playlist folder(s)):
-   ```ps1
-   python main.py -link "https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M?si=9fab95ad8ab349a7" -outpath "F:/Songs" -folder False
-   ```
-6. Download / Sync Spotify playlists with local playlists when sync.json is not present or is in present directory:
-   ```ps1
-   python main.py -sync
-   ```
-7. Download / Sync Spotify playlists with local playlists when sync.json is in a specified directory:
-   ```ps1
-    python main.py -sync "F:/Songs/sync.json"
-   ```
+### File Naming Patterns
 
-### sync.json Structure
-The first time you try to run the sync command, the program will ask you for the playlist info and the sync.json will be created automatically. If you wish to manually create a sync.json file or modify the existing one, use the following structure:
-```json
-[
-    {
-        "name": "<Playlist Name 1>",
-        "link": "<Playlist Link>",
-        "create_folder": true,
-        "download_location": "F:/Songs"
-    },
-    {
-        "name": "<Playlist Name 2>",
-        "link": "<Playlist Link>",
-        "create_folder": true,
-        "download_location": "F:/Songs"
-    }
-]
+The application supports custom file naming patterns:
+
+- `default` - `{artist} - {title}`
+- `track_number` - `{track_number:02d} - {title}`
+- `artist_title` - `{artist} - {title}`
+- `title_only` - `{title}`
+- `artist_title_number` - `{track_number:02d} - {artist} - {title}`
+
+### Quality Options
+
+- `320` - 320kbps (highest quality)
+- `192` - 192kbps (medium quality)
+- `128` - 128kbps (standard quality)
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Token Invalid**: Run `python main.py setup` to update your token
+2. **Download Failures**: Check your internet connection and try again
+3. **Cloudflare Protection**: Update your token using the setup command
+
+### Error Messages
+
+- `Token validation failed`: Run setup to get a new token
+- `Invalid Spotify URL`: Check the URL format
+- `Download failed`: Try again or check your token
+
+## File Structure
+
+```
+spdl/
+├── main.py              # Main application
+├── downloader.py        # Download functionality
+├── spotify_api.py       # Spotify API integration
+├── sync.py             # Playlist synchronization
+├── utils.py            # Utility functions
+├── config.py           # Configuration
+├── models.py           # Data models
+├── requirements.txt    # Dependencies
+├── sync.json          # Playlist configuration
+├── .token             # Token storage (auto-generated)
+└── downloads/         # Downloaded files
 ```
 
+## Contributing
 
-## Feedback
-I would greatly appreciate your feedback after using the tool. Your insights helps it improve!
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
 
-## Feature Request/Contributions
-I would not be able to take in feature requests at this point, but I would love to accept contributions/pull requests if anyone is willing to work on any issue.
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Disclaimer
+
+This tool is for educational purposes only. Please respect copyright laws and only download music you have the right to access.
+
+## Changelog
+
+### v2.0.0
+- Added token-based authentication
+- Improved error handling
+- Better user experience
+- Enhanced documentation
+
+### v1.0.0
+- Initial release
+- Basic download functionality
+- Playlist support
